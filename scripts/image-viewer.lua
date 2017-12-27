@@ -199,6 +199,7 @@ end
 
 function align_border(x, y)
     local video_dimensions = compute_video_dimensions()
+    if not video_dimensions then return end
     local window_w, window_h = mp.get_osd_size()
     local x,y = tonumber(x), tonumber(y)
     local command = ""
@@ -226,6 +227,7 @@ end
 
 function reset_pan_if_visible()
     local video_dimensions = compute_video_dimensions()
+    if not video_dimensions then return end
     local window_w, window_h = mp.get_osd_size()
     local command = ""
     if (window_w >= video_dimensions.size.w) then
