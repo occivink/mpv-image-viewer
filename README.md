@@ -29,7 +29,7 @@ The `scripts/image-viewer.lua` script offers several commands that are common in
 `cursor-centric-zoom`: (de)zoom the video while keeping the same part of the image under the cursor  
 `align-border`: align the border of the image with the border of the window  
 `zoom-invariant-add`: pan the image by the same amount, regardless of the zoom  
-`rotate-video`: rotate the video in 90 degrees increment  
+`rotate-video`: rotate the image in 90 degrees increment  
 `reset-pan-if-visible`: reset the pan if the entire image is visible  
 
 They don't have any default bindings, see the example `input.conf`, and in the configuration bind them.
