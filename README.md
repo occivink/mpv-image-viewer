@@ -35,6 +35,10 @@ The `scripts/image-viewer.lua` script offers several commands that are common in
 They don't have any default bindings, see the example `input.conf`, and in the configuration bind them.
 Some of these commands can be configured, see `lua-settings/image_viewer.conf` in this repo for the options available. 
 
+## gallery.lua
+
+The [gallery-view](https://github.com/occivink/mpv-gallery-view) plugin greatly helps when navigating large image playlists.
+
 ## Others
 
 Some other mpv scripts work well with mvi, here are a few (feel free to send a PR for others):
