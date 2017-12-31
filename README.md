@@ -2,6 +2,8 @@ This repository aggregates configurations, scripts and tips for using [mpv](http
 
 This README assumes basic familiarity with mpv and its configuration. The information here should be platform-agnostic for the most part.
 
+[![demo](https://i.vimeocdn.com/filter/overlay?src0=https%3A%2F%2Fi.vimeocdn.com%2Fvideo%2F674986351_1280x720.jpg&src1=https%3A%2F%2Ff.vimeocdn.com%2Fimages_v6%2Fshare%2Fplay_icon_overlay.png)](https://vimeo.com/249231479)
+
 # Why?
 
 mpv is a competent video player and sufficiently lightweight to use comfortably to view images. It features advanced scaling algorithms and color management, which are key features in an image viewer.  
