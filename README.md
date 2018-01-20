@@ -33,6 +33,7 @@ The `scripts/image-viewer.lua` script offers several commands that are common in
 `zoom-invariant-add`: pan the image by the same amount, regardless of the zoom  
 `rotate-video`: rotate the image in 90 degrees increment  
 `reset-pan-if-visible`: reset the pan if the entire image is visible  
+`force-print-filename`: print the filename, even if console output is disabled  
 
 They don't have any default bindings, see the example `input.conf`, and in the configuration bind them.
 Some of these commands can be configured, see `lua-settings/image_viewer.conf` in this repo for the options available. 
@@ -54,11 +55,25 @@ Some other mpv scripts work well with mvi, here are a few (feel free to send a P
 [playlist-manager](https://github.com/jonniek/mpv-playlistmanager): playlist management script  
 [mpv-stats](https://github.com/Argon-/mpv-stats): show some info about the input file (integrated into mpv in 0.28+)  
 
+# Tips
+
+## Piping mpv to other applications
+
+It is possible to use mpv in shell to act as a visual filter for input files.  
+
+Simply load the "silent" profile, and call `force-print-filname` to print the name of the current file for the next program in the pipe. You should take care of using "newline" as file separator.  
+
+For example, if one wanted to delete images they could run something like this:
+```
+IFS='
+'
+mpv --profile=silent images/* | xargs rm
+```
+and press `p` on each image they want to delete.
+
 # TODO
 
 `input.conf` that mirror the bindings of popular image viewing software, such as `feh` or `sxiv`.
-
-Configuration with no terminal output except for the path when pressing `ENTER` so that you can pipe mvi to other commands.
 
 # Credits
 

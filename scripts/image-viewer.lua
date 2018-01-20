@@ -241,6 +241,12 @@ function reset_pan_if_visible()
     end
 end
 
+function force_print_filename()
+    mp.set_property("msg-level", "cplayer=info")
+    mp.commandv("print-text", mp.get_property("path"))
+    mp.set_property("msg-level", "all=no")
+end
+
 mp.add_key_binding(nil, "drag-to-pan", drag_to_pan_handler, {complex = true})
 mp.add_key_binding(nil, "pan-follows-cursor", pan_follows_cursor_handler, {complex = true})
 mp.add_key_binding(nil, "cursor-centric-zoom", cursor_centric_zoom_handler)
@@ -248,3 +254,4 @@ mp.add_key_binding(nil, "align-border", align_border)
 mp.add_key_binding(nil, "zoom-invariant-add", zoom_invariant_add)
 mp.add_key_binding(nil, "rotate-video", rotate_video)
 mp.add_key_binding(nil, "reset-pan-if-visible", reset_pan_if_visible)
+mp.add_key_binding(nil, "force-print-filename", force_print_filename)
