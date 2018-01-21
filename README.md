@@ -30,7 +30,7 @@ The `scripts/image-viewer.lua` script offers several commands that are common in
 `pan-follows-cursor`: pan the image in the direction of the cursor  
 `cursor-centric-zoom`: (de)zoom the video while keeping the same part of the image under the cursor  
 `align-border`: align the border of the image with the border of the window  
-`zoom-invariant-add`: pan the image by the same amount, regardless of the zoom  
+`pan-image`: pan the image in a direction, optionally ignoring the zoom or forcing the image to stay visible
 `rotate-video`: rotate the image in 90 degrees increment  
 `reset-pan-if-visible`: reset the pan if the entire image is visible  
 `force-print-filename`: print the filename, even if console output is disabled  

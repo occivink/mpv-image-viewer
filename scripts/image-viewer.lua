@@ -7,6 +7,7 @@ local opts = {
     do_not_move_if_all_visible = true,
 }
 (require 'mp.options').read_options(opts)
+local msg = require 'mp.msg'
 
 function register_idle(func)
     current_idle = func
@@ -201,7 +202,7 @@ function align_border(x, y)
     local video_dimensions = compute_video_dimensions()
     if not video_dimensions then return end
     local window_w, window_h = mp.get_osd_size()
-    local x,y = tonumber(x), tonumber(y)
+    local x, y = tonumber(x), tonumber(y)
     local command = ""
     if x then
         command = command .. "no-osd set video-pan-x " .. x * (video_dimensions.size.w - window_w) / (2 * video_dimensions.size.w) .. ";"
@@ -214,9 +215,42 @@ function align_border(x, y)
     end
 end
 
+--TODO remove
 function zoom_invariant_add(prop, amt)
+    msg.warn("Deprecated, use \"pan-image\" instead")
     amt = amt / 2 ^ mp.get_property_number("video-zoom")
     mp.set_property_number(prop, mp.get_property_number(prop) + amt)
+end
+
+function pan_image(axis, amount, zoom_invariant, image_constrained)
+    amount = tonumber(amount)
+    if not amount or amount == 0 or axis ~= "x" and axis ~= "y" then return end
+    if zoom_invariant == "yes" then
+        amount = amount / 2 ^ mp.get_property_number("video-zoom")
+    end
+    local prop = "video-pan-" .. axis
+    local old_pan = mp.get_property_number(prop)
+    if image_constrained == "yes" then
+        local video_dimensions = compute_video_dimensions()
+        if not video_dimensions then return end
+        local measure = axis == "x" and "w" or "h"
+        local window = {}
+        window.w, window.h = mp.get_osd_size()
+        local pixels_moved = amount * video_dimensions.size[measure]
+        if pixels_moved > 0 then
+            -- corner already visible, no reason to move
+            if video_dimensions.top_left[axis] >= 0 then return end
+            if video_dimensions.top_left[axis] + pixels_moved > 0 then
+                amount = (0 - video_dimensions.top_left[axis]) / video_dimensions.size[measure]
+            end
+        else
+            if video_dimensions.bottom_right[axis] <= window[measure] then return end
+            if video_dimensions.bottom_right[axis] + pixels_moved < window[measure] then
+                amount = (window[measure] - video_dimensions.bottom_right[axis]) / video_dimensions.size[measure]
+            end
+        end
+    end
+    mp.set_property_number(prop, old_pan + amount)
 end
 
 function rotate_video(amt)
@@ -251,7 +285,10 @@ mp.add_key_binding(nil, "drag-to-pan", drag_to_pan_handler, {complex = true})
 mp.add_key_binding(nil, "pan-follows-cursor", pan_follows_cursor_handler, {complex = true})
 mp.add_key_binding(nil, "cursor-centric-zoom", cursor_centric_zoom_handler)
 mp.add_key_binding(nil, "align-border", align_border)
-mp.add_key_binding(nil, "zoom-invariant-add", zoom_invariant_add)
+mp.add_key_binding(nil, "pan-image", pan_image)
 mp.add_key_binding(nil, "rotate-video", rotate_video)
 mp.add_key_binding(nil, "reset-pan-if-visible", reset_pan_if_visible)
 mp.add_key_binding(nil, "force-print-filename", force_print_filename)
+
+-- deprecated, remove some time later
+mp.add_key_binding(nil, "zoom-invariant-add", zoom_invariant_add)
