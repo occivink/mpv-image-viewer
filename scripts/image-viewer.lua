@@ -237,16 +237,30 @@ function pan_image(axis, amount, zoom_invariant, image_constrained)
         local window = {}
         window.w, window.h = mp.get_osd_size()
         local pixels_moved = amount * video_dimensions.size[measure]
+        -- should somehow refactor this
         if pixels_moved > 0 then
-            -- corner already visible, no reason to move
-            if video_dimensions.top_left[axis] >= 0 then return end
-            if video_dimensions.top_left[axis] + pixels_moved > 0 then
-                amount = (0 - video_dimensions.top_left[axis]) / video_dimensions.size[measure]
+            if window[measure] > video_dimensions.size[measure] then
+                if video_dimensions.bottom_right[axis] >= window[measure] then return end
+                if video_dimensions.bottom_right[axis] + pixels_moved > window[measure] then
+                    amount = (window[measure] - video_dimensions.bottom_right[axis]) / video_dimensions.size[measure]
+                end
+            else
+                if video_dimensions.top_left[axis] >= 0 then return end
+                if video_dimensions.top_left[axis] + pixels_moved > 0 then
+                    amount = (0 - video_dimensions.top_left[axis]) / video_dimensions.size[measure]
+                end
             end
         else
-            if video_dimensions.bottom_right[axis] <= window[measure] then return end
-            if video_dimensions.bottom_right[axis] + pixels_moved < window[measure] then
-                amount = (window[measure] - video_dimensions.bottom_right[axis]) / video_dimensions.size[measure]
+            if window[measure] > video_dimensions.size[measure] then
+                if video_dimensions.top_left[axis] <= 0 then return end
+                if video_dimensions.top_left[axis] + pixels_moved < 0 then
+                    amount = (0 - video_dimensions.top_left[axis]) / video_dimensions.size[measure]
+                end
+            else
+                if video_dimensions.bottom_right[axis] <= window[measure] then return end
+                if video_dimensions.bottom_right[axis] + pixels_moved < window[measure] then
+                    amount = (window[measure] - video_dimensions.bottom_right[axis]) / video_dimensions.size[measure]
+                end
             end
         end
     end
