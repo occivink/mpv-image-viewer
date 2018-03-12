@@ -279,10 +279,10 @@ function reset_pan_if_visible()
     local window_w, window_h = mp.get_osd_size()
     local command = ""
     if (window_w >= video_dimensions.size.w) then
-        command = command .. "no-osd set video-pan-x 0"
+        command = command .. "no-osd set video-pan-x 0" .. ";"
     end
     if (window_h >= video_dimensions.size.h) then
-        command = command .. "no-osd set video-pan-y 0"
+        command = command .. "no-osd set video-pan-y 0" .. ";"
     end
     if command ~= "" then
         mp.command(command)
