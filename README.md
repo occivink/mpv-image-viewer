@@ -34,9 +34,11 @@ The `scripts/image-viewer.lua` script offers several commands that are common in
 `rotate-video`: rotate the image in 90 degrees increment  
 `reset-pan-if-visible`: reset the pan if the entire image is visible  
 `force-print-filename`: print the filename, even if console output is disabled  
+`enable-status-line`, `disable-status-line`, `toggle-status-line`: show a simple status line
 
 They don't have any default bindings, see the example `input.conf`, and in the configuration bind them.
-Some of these commands can be configured, see `lua-settings/image_viewer.conf` in this repo for the options available. 
+Some of these commands, as well as the status line, can be configured, see `script-opts/image_viewer.conf` for the available options.
+
 
 ## gallery.lua
 
@@ -77,4 +79,4 @@ and press `p` on each image they want to delete.
 
 # Credits
 
-Thanks to haasn for coming up first with the [image-viewer config](https://gist.github.com/haasn/7919afd765e308fa91cbe19a64631d0f), all the mpv devs and the /mpv/ shitposters.
+Thanks to haasn for coming up first with the [image-viewer config](https://gist.github.com/haasn/7919afd765e308fa91cbe19a64631d0f), all the mpv devs and the /mpv/ funposters.

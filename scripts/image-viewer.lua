@@ -5,9 +5,14 @@ local zoom_increment = 0
 local opts = {
     margin = 50,
     do_not_move_if_all_visible = true,
+    status_line_enabled = true,
+    status_line_position = "bottom_left",
+    status_line_size = 36,
+    status_line = "${filename} [${playlist-pos-1}/${playlist-count}]",
 }
 (require 'mp.options').read_options(opts)
 local msg = require 'mp.msg'
+local assdraw = require 'mp.assdraw'
 
 function register_idle(func)
     current_idle = func
@@ -40,7 +45,7 @@ function compute_video_dimensions()
         dw, dh = dh, dw
     end
     local window_w, window_h = mp.get_osd_size()
-    
+
     if keep_aspect then
         local unscaled = mp.get_property_native("video-unscaled")
         local panscan = mp.get_property_number("panscan")
@@ -295,6 +300,70 @@ function force_print_filename()
     mp.set_property("msg-level", "all=no")
 end
 
+local status_line_enabled = false;
+
+function refresh_status_line()
+    local w,h = mp.get_osd_size()
+    local an, x, y
+    local margin = 10
+    if opts.status_line_position == "top_left" then
+        x = margin
+        y = margin
+        an = 7
+    elseif opts.status_line_position == "top_right" then
+        x = w-margin
+        y = margin
+        an = 9
+    elseif opts.status_line_position == "bottom_right" then
+        x = w-margin
+        y = h-margin
+        an = 3
+    else
+        x = margin
+        y = h-margin
+        an = 1
+    end
+    local ass = assdraw:ass_new()
+    ass:new_event()
+    ass:an(an)
+    ass:pos(x,y)
+    local expanded = mp.command_native({ "expand-text", opts.status_line })
+    if not expanded then
+        msg.warn("Error expanding status line")
+        return
+    end
+    ass:append("{\\fs".. opts.status_line_size.. "}{\\bord1.0}")
+    ass:append(expanded)
+    mp.set_osd_ass(w, h, ass.text)
+end
+
+function enable_status_line()
+    if status_line_enabled then return end
+    status_line_enabled = true
+    local start = 0
+    while true do
+        local s, e, cap = string.find(opts.status_line, "%${[?!]?([%l%d-/]*)", start)
+        if not s then break end
+        mp.observe_property(cap, nil, refresh_status_line)
+        start = e
+    end
+    mp.observe_property("osd-width", nil, refresh_status_line)
+    mp.observe_property("osd-height", nil, refresh_status_line)
+    refresh_status_line()
+
+end
+
+function disable_status_line()
+    if not status_line_enabled then return end
+    status_line_enabled = false
+    mp.unobserve_property(refresh_status_line)
+    mp.set_osd_ass(w, h, "")
+end
+
+if opts.status_line_enabled then
+    enable_status_line()
+end
+
 mp.add_key_binding(nil, "drag-to-pan", drag_to_pan_handler, {complex = true})
 mp.add_key_binding(nil, "pan-follows-cursor", pan_follows_cursor_handler, {complex = true})
 mp.add_key_binding(nil, "cursor-centric-zoom", cursor_centric_zoom_handler)
@@ -303,6 +372,10 @@ mp.add_key_binding(nil, "pan-image", pan_image)
 mp.add_key_binding(nil, "rotate-video", rotate_video)
 mp.add_key_binding(nil, "reset-pan-if-visible", reset_pan_if_visible)
 mp.add_key_binding(nil, "force-print-filename", force_print_filename)
+
+mp.add_key_binding(nil, "enable-status-line", enable_status_line)
+mp.add_key_binding(nil, "disable-status-line", disable_status_line)
+mp.add_key_binding(nil, "toggle-status-line", function() if status_line_enabled then disable_status_line() else enable_status_line() end end)
 
 -- deprecated, remove some time later
 mp.add_key_binding(nil, "zoom-invariant-add", zoom_invariant_add)
