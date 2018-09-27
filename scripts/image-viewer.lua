@@ -166,6 +166,7 @@ function pan_follows_cursor_handler(table)
                 needs_adjusting = false
             end
         end)
+        needs_adjusting = true
         mp.add_forced_key_binding("mouse_move", "image-viewer-impl", function()
             needs_adjusting = true
         end)
