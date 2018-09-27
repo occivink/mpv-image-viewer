@@ -37,7 +37,7 @@ The `scripts/image-viewer.lua` script offers several commands that are common in
 `enable-status-line`, `disable-status-line`, `toggle-status-line`: show a simple status line
 
 They don't have any default bindings, see the example `input.conf`, and in the configuration bind them.
-Some of these commands, as well as the status line, can be configured, see `script-opts/image_viewer.conf` for the available options.
+Some of these commands, as well as the status line can be configured via `script-opts/image_viewer.conf`.
 
 
 ## gallery.lua

@@ -3,8 +3,8 @@ local current_idle = nil
 local zoom_increment = 0
 
 local opts = {
-    margin = 50,
-    do_not_move_if_all_visible = true,
+    pan_follows_cursor_margin = 50,
+    pan_follows_cursor_move_if_full_view = true,
     status_line_enabled = true,
     status_line_position = "bottom_left",
     status_line_size = 36,
@@ -149,13 +149,14 @@ function pan_follows_cursor_handler(table)
                 local x = math.min(1, math.max(- 2 * mX / window_w + 1, -1))
                 local y = math.min(1, math.max(- 2 * mY / window_h + 1, -1))
                 local command = ""
-                if (opts.do_not_move_if_all_visible and window_w < video_dimensions.size.w) then
-                    command = command .. "no-osd set video-pan-x " .. x * (video_dimensions.size.w - window_w + 2 * opts.margin) / (2 * video_dimensions.size.w) .. ";"
+                local margin, move_full = opts.pan_follows_cursor_margin, opts.pan_follows_cursor_move_if_full_view
+                if (not move_full and window_w < video_dimensions.size.w) then
+                    command = command .. "no-osd set video-pan-x " .. x * (video_dimensions.size.w - window_w + 2 * margin) / (2 * video_dimensions.size.w) .. ";"
                 elseif mp.get_property_number("video-pan-x") ~= 0 then
                     command = command .. "no-osd set video-pan-x " .. "0;"
                 end
-                if (opts.do_not_move_if_all_visible and window_h < video_dimensions.size.h) then
-                    command = command .. "no-osd set video-pan-y " .. y * (video_dimensions.size.h - window_h + 2 * opts.margin) / (2 * video_dimensions.size.h) .. ";"
+                if (not move_full and window_h < video_dimensions.size.h) then
+                    command = command .. "no-osd set video-pan-y " .. y * (video_dimensions.size.h - window_h + 2 * margin) / (2 * video_dimensions.size.h) .. ";"
                 elseif mp.get_property_number("video-pan-y") ~= 0 then
                     command = command .. "no-osd set video-pan-y " .. "0;"
                 end
@@ -218,13 +219,6 @@ function align_border(x, y)
     if command ~= "" then
         mp.command(command)
     end
-end
-
---TODO remove
-function zoom_invariant_add(prop, amt)
-    msg.warn("Deprecated, use \"pan-image\" instead")
-    amt = amt / 2 ^ mp.get_property_number("video-zoom")
-    mp.set_property_number(prop, mp.get_property_number(prop) + amt)
 end
 
 function pan_image(axis, amount, zoom_invariant, image_constrained)
@@ -376,6 +370,3 @@ mp.add_key_binding(nil, "force-print-filename", force_print_filename)
 mp.add_key_binding(nil, "enable-status-line", enable_status_line)
 mp.add_key_binding(nil, "disable-status-line", disable_status_line)
 mp.add_key_binding(nil, "toggle-status-line", function() if status_line_enabled then disable_status_line() else enable_status_line() end end)
-
--- deprecated, remove some time later
-mp.add_key_binding(nil, "zoom-invariant-add", zoom_invariant_add)
