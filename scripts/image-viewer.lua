@@ -298,6 +298,11 @@ end
 local status_line_enabled = false;
 
 function refresh_status_line()
+    local expanded = mp.command_native({ "expand-text", opts.status_line })
+    if not expanded then
+        msg.warn("Error expanding status line")
+        return
+    end
     local w,h = mp.get_osd_size()
     local an, x, y
     local margin = 10
@@ -322,11 +327,6 @@ function refresh_status_line()
     ass:new_event()
     ass:an(an)
     ass:pos(x,y)
-    local expanded = mp.command_native({ "expand-text", opts.status_line })
-    if not expanded then
-        msg.warn("Error expanding status line")
-        return
-    end
     ass:append("{\\fs".. opts.status_line_size.. "}{\\bord1.0}")
     ass:append(expanded)
     mp.set_osd_ass(w, h, ass.text)
@@ -345,14 +345,13 @@ function enable_status_line()
     mp.observe_property("osd-width", nil, refresh_status_line)
     mp.observe_property("osd-height", nil, refresh_status_line)
     refresh_status_line()
-
 end
 
 function disable_status_line()
     if not status_line_enabled then return end
     status_line_enabled = false
     mp.unobserve_property(refresh_status_line)
-    mp.set_osd_ass(w, h, "")
+    mp.set_osd_ass(0, 0, "")
 end
 
 if opts.status_line_enabled then
