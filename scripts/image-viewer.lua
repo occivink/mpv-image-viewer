@@ -9,6 +9,8 @@ local opts = {
     status_line_position = "bottom_left",
     status_line_size = 36,
     status_line = "${filename} [${playlist-pos-1}/${playlist-count}]",
+    command_on_image_loaded = "",
+    command_on_non_image_loaded = "",
 }
 (require 'mp.options').read_options(opts)
 local msg = require 'mp.msg'
@@ -356,6 +358,62 @@ end
 
 if opts.status_line_enabled then
     enable_status_line()
+end
+
+if opts.command_on_image_loaded ~= "" or opts.command_on_non_image_loaded ~= "" then
+    local is_image = false
+    local frame_count = nil
+    local audio_tracks = nil
+    local path = nil
+
+    function state_changed()
+        function setImage(b)
+            if b == is_image then return end
+            if b and opts.command_on_image_loaded ~= "" then
+                mp.command(opts.command_on_image_loaded)
+            elseif opts.command_on_non_image_loaded ~= "" then
+                mp.command(opts.command_on_non_image_loaded)
+            end
+            is_image = b
+        end
+        -- only do things when state is consistent
+        if path ~= nil and audio_tracks ~= nil then
+            if frame_count == nil and audio_tracks > 0 then
+                setImage(false)
+            elseif frame_count ~= nil then
+                setImage((frame_count == 0 or frame_count == 1) and audio_tracks == 0)
+            end
+        end
+    end
+
+    mp.observe_property("estimated-frame-count", "number", function(_, val)
+        frame_count = val
+        state_changed()
+    end)
+
+    mp.observe_property("path", "string", function(_, val)
+        if not val or val == "" then
+            path = nil
+        else
+            path = val
+        end
+        state_changed()
+    end)
+
+    mp.register_event("tracks-changed", function()
+        audio_tracks = 0
+        local tracks = 0
+        for _, track in ipairs(mp.get_property_native("track-list")) do
+            tracks = tracks + 1
+             if track.type == "audio" then
+                 audio_tracks = audio_tracks + 1
+             end
+        end
+        if tracks == 0 then
+            audio_tracks = nil
+        end
+        state_changed()
+    end)
 end
 
 mp.add_key_binding(nil, "drag-to-pan", drag_to_pan_handler, {complex = true})
