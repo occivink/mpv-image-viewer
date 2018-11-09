@@ -371,7 +371,7 @@ if opts.command_on_image_loaded ~= "" or opts.command_on_non_image_loaded ~= "" 
             if b == is_image then return end
             if b and opts.command_on_image_loaded ~= "" then
                 mp.command(opts.command_on_image_loaded)
-            elseif opts.command_on_non_image_loaded ~= "" then
+            elseif not b and opts.command_on_non_image_loaded ~= "" then
                 mp.command(opts.command_on_non_image_loaded)
             end
             is_image = b
