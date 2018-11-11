@@ -301,9 +301,15 @@ end
 local status_line_enabled = false;
 
 function refresh_status_line()
+    local path = mp.get_property("path")
+    if path == nil or path == "" then
+        mp.set_osd_ass(0, 0, "")
+        return
+    end
     local expanded = mp.command_native({ "expand-text", opts.status_line })
     if not expanded then
         msg.warn("Error expanding status line")
+        mp.set_osd_ass(0, 0, "")
         return
     end
     local w,h = mp.get_osd_size()
@@ -345,6 +351,7 @@ function enable_status_line()
         mp.observe_property(cap, nil, refresh_status_line)
         start = e
     end
+    mp.observe_property("path", nil, refresh_status_line)
     mp.observe_property("osd-width", nil, refresh_status_line)
     mp.observe_property("osd-height", nil, refresh_status_line)
     refresh_status_line()
@@ -365,6 +372,7 @@ if opts.command_on_image_loaded ~= "" or opts.command_on_non_image_loaded ~= "" 
     local was_image = false
     local frame_count = nil
     local audio_tracks = nil
+    local out_params_ready = nil
     local path = nil
 
     function state_changed()
@@ -384,18 +392,21 @@ if opts.command_on_image_loaded ~= "" or opts.command_on_non_image_loaded ~= "" 
         if path ~= nil and audio_tracks ~= nil then
             if frame_count == nil and audio_tracks > 0 then
                 set_image(false)
-            elseif frame_count ~= nil then
+            elseif out_params_ready and frame_count ~= nil then
                 -- png have 0 frames, jpg 1 ¯\_(ツ)_/¯
                 set_image((frame_count == 0 or frame_count == 1) and audio_tracks == 0)
             end
         end
     end
 
+    mp.observe_property("video-out-params/par", "number", function(_, val)
+        out_params_ready = (val ~= nil and val > 0)
+        state_changed()
+    end)
     mp.observe_property("estimated-frame-count", "number", function(_, val)
         frame_count = val
         state_changed()
     end)
-
     mp.observe_property("path", "string", function(_, val)
         if not val or val == "" then
             path = nil
@@ -404,7 +415,6 @@ if opts.command_on_image_loaded ~= "" or opts.command_on_non_image_loaded ~= "" 
         end
         state_changed()
     end)
-
     mp.register_event("tracks-changed", function()
         audio_tracks = 0
         local tracks = 0
