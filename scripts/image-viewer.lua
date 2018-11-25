@@ -298,9 +298,16 @@ function force_print_filename()
     mp.set_property("msg-level", "all=no")
 end
 
-local status_line_enabled = false;
+local status_line_enabled = false
+local refresh_status_line = true
+
+function mark_status_line_stale()
+    status_line_stale = true
+end
 
 function refresh_status_line()
+    if not status_line_stale then return end
+    status_line_stale = false
     local path = mp.get_property("path")
     if path == nil or path == "" then
         mp.set_osd_ass(0, 0, "")
@@ -348,19 +355,21 @@ function enable_status_line()
     while true do
         local s, e, cap = string.find(opts.status_line, "%${[?!]?([%l%d-/]*)", start)
         if not s then break end
-        mp.observe_property(cap, nil, refresh_status_line)
+        mp.observe_property(cap, nil, mark_status_line_stale)
         start = e
     end
-    mp.observe_property("path", nil, refresh_status_line)
-    mp.observe_property("osd-width", nil, refresh_status_line)
-    mp.observe_property("osd-height", nil, refresh_status_line)
-    refresh_status_line()
+    mp.observe_property("path", nil, mark_status_line_stale)
+    mp.observe_property("osd-width", nil, mark_status_line_stale)
+    mp.observe_property("osd-height", nil, mark_status_line_stale)
+    mp.register_idle(refresh_status_line)
+    mark_status_line_stale()
 end
 
 function disable_status_line()
     if not status_line_enabled then return end
     status_line_enabled = false
-    mp.unobserve_property(refresh_status_line)
+    mp.unobserve_property(mark_status_line_stale)
+    mp.unregister_idle(refresh_status_line)
     mp.set_osd_ass(0, 0, "")
 end
 
