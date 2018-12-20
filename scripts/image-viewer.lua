@@ -36,7 +36,6 @@ local msg = require 'mp.msg'
 local assdraw = require 'mp.assdraw'
 
 local ass = { -- shared ass state
-    refresh = true,
     status_line = "",
     minimap = "",
 }
@@ -340,6 +339,14 @@ function force_print_filename()
     mp.set_property("msg-level", "all=no")
 end
 
+function draw_ass()
+    local ww, wh = mp.get_osd_size()
+    local merge = function(a, b)
+        return b ~= "" and (a .. "\n" .. b) or a
+    end
+    mp.set_osd_ass(ww, wh, merge(ass.status_line, ass.minimap))
+end
+
 local status_line_enabled = false
 local status_line_stale = true
 
@@ -352,13 +359,15 @@ function refresh_status_line()
     status_line_stale = false
     local path = mp.get_property("path")
     if path == nil or path == "" then
-        mp.set_osd_ass(0, 0, "")
+        ass.status_line = ""
+        draw_ass()
         return
     end
     local expanded = mp.command_native({ "expand-text", opts.status_line })
     if not expanded then
         msg.warn("Error expanding status line")
-        mp.set_osd_ass(0, 0, "")
+        ass.status_line = ""
+        draw_ass()
         return
     end
     local w,h = mp.get_osd_size()
@@ -381,13 +390,14 @@ function refresh_status_line()
         y = h-margin
         an = 1
     end
-    local ass = assdraw:ass_new()
-    ass:new_event()
-    ass:an(an)
-    ass:pos(x,y)
-    ass:append("{\\fs".. opts.status_line_size.. "}{\\bord1.0}")
-    ass:append(expanded)
-    mp.set_osd_ass(w, h, ass.text)
+    local a = assdraw:ass_new()
+    a:new_event()
+    a:an(an)
+    a:pos(x,y)
+    a:append("{\\fs".. opts.status_line_size.. "}{\\bord1.0}")
+    a:append(expanded)
+    ass.status_line = a.text
+    draw_ass()
 end
 
 function enable_status_line()
@@ -412,7 +422,8 @@ function disable_status_line()
     status_line_enabled = false
     mp.unobserve_property(mark_status_line_stale)
     mp.unregister_idle(refresh_status_line)
-    mp.set_osd_ass(0, 0, "")
+    ass.status_line = ""
+    draw_ass()
 end
 
 if opts.status_line_enabled then
@@ -482,133 +493,129 @@ if opts.command_on_image_loaded ~= "" or opts.command_on_non_image_loaded ~= "" 
     end)
 end
 
-local minimap_enabled = false
+function refresh_minimap()
+    local dim = get_video_dimensions()
+    if not dim then return end
+    if _old_timestamp and dim.timestamp == _old_timestamp then return end
+    _old_timestamp = dim.timestamp
+    local ww, wh = mp.get_osd_size()
+    local center = {
+        x=opts.minimap_center[1]/100*ww,
+        y=opts.minimap_center[2]/100*wh
+    }
+    local cutoff = {
+        x=opts.minimap_max_size[1]/100*ww/2,
+        y=opts.minimap_max_size[2]/100*wh/2
+    }
+    local a = assdraw.ass_new()
+    local draw = function(x, y, w, h, opacity, color)
+        a:new_event()
+        a:pos(center.x, center.y)
+        a:append("{\\bord0}")
+        a:append("{\\shad0}")
+        a:append("{\\c&" .. color .. "&}")
+        a:append("{\\2a&HFF}")
+        a:append("{\\3a&HFF}")
+        a:append("{\\4a&HFF}")
+        a:append("{\\1a&H" .. opacity .. "}")
+        w=w/2
+        h=h/2
+        a:draw_start()
+        local rounded = {true,true,true,true} -- tl, tr, br, bl
+        local x0,y0,x1,y1 = x-w, y-h, x+w, y+h
+        if x0 < -cutoff.x then
+            x0 = -cutoff.x
+            rounded[4] = false
+            rounded[1] = false
+        end
+        if y0 < -cutoff.y then
+            y0 = -cutoff.y
+            rounded[1] = false
+            rounded[2] = false
+        end
+        if x1 > cutoff.x then
+            x1 = cutoff.x
+            rounded[2] = false
+            rounded[3] = false
+        end
+        if y1 > cutoff.y then
+            y1 = cutoff.y
+            rounded[3] = false
+            rounded[4] = false
+        end
 
-function draw_minimap()
-    
+        local r = 3
+        local c = 0.551915024494 * r
+        if rounded[0] then
+            a:move_to(x0 + r, y0)
+        else
+            a:move_to(x0,y0)
+        end
+        if rounded[1] then
+            a:line_to(x1 - r, y0)
+            a:bezier_curve(x1 - r + c, y0, x1, y0 + r - c, x1, y0 + r)
+        else
+            a:line_to(x1, y0)
+        end
+        if rounded[2] then
+            a:line_to(x1, y1 - r)
+            a:bezier_curve(x1, y1 - r + c, x1 - r + c, y1, x1 - r, y1)
+        else
+            a:line_to(x1, y1)
+        end
+        if rounded[3] then
+            a:line_to(x0 + r, y1)
+            a:bezier_curve(x0 + r - c, y1, x0, y1 - r + c, x0, y1 - r)
+        else
+            a:line_to(x0, y1)
+        end
+        if rounded[4] then
+            a:line_to(x0, y0 + r)
+            a:bezier_curve(x0, y0 + r - c, x0 + r - c, y0, x0 + r, y0)
+        else
+            a:line_to(x0, y0)
+        end
+        a:draw_stop()
+    end
+    local image = function()
+        draw((dim.top_left.x + dim.size.w/2 - ww/2) / opts.minimap_scale,
+             (dim.top_left.y + dim.size.h/2 - wh/2) / opts.minimap_scale,
+             dim.size.w / opts.minimap_scale,
+             dim.size.h / opts.minimap_scale,
+             opts.minimap_image_opacity,
+             opts.minimap_image_color)
+    end
+    local view = function()
+        draw(0,
+             0,
+             ww / opts.minimap_scale,
+             wh / opts.minimap_scale,
+             opts.minimap_view_opacity,
+             opts.minimap_view_color)
+    end
+    if opts.minimap_view_above_image then
+        image()
+        view()
+    else
+        view()
+        image()
+    end
+    ass.minimap = a.text
+    draw_ass()
 end
+
+local minimap_enabled = false
 
 function enable_minimap()
     if minimap_enabled then return end
     minimap_enabled = true
-    mp.register_idle(function()
-        local dim = get_video_dimensions()
-        local ww, wh = mp.get_osd_size()
-        if not dim then return end
-        local center = {
-            x=opts.minimap_center[1]/100*ww,
-            y=opts.minimap_center[2]/100*wh
-        }
-        local ass = assdraw.ass_new()
-        local cutoff = {
-            x=opts.minimap_max_size[1]/100*ww/2,
-            y=opts.minimap_max_size[2]/100*wh/2
-        }
-        local draw = function(ass, x, y, w, h, opacity, color)
-            ass:new_event()
-            ass:pos(center.x, center.y)
-            ass:append("{\\bord0}")
-            ass:append("{\\shad0}")
-            ass:append("{\\c&" .. color .. "&}")
-            ass:append("{\\2a&HFF}")
-            ass:append("{\\3a&HFF}")
-            ass:append("{\\4a&HFF}")
-            ass:append("{\\1a&H" .. opacity .. "}")
-            w=w/2
-            h=h/2
-            ass:draw_start()
-            local rounded = {true,true,true,true} -- tl, tr, br, bl
-            local x0,y0,x1,y1 = x-w, y-h, x+w, y+h
-            if x0 < -cutoff.x then
-                x0 = -cutoff.x
-                rounded[4] = false
-                rounded[1] = false
-            end
-            if y0 < -cutoff.y then
-                y0 = -cutoff.y
-                rounded[1] = false
-                rounded[2] = false
-            end
-            if x1 > cutoff.x then
-                x1 = cutoff.x
-                rounded[2] = false
-                rounded[3] = false
-            end
-            if y1 > cutoff.y then
-                y1 = cutoff.y
-                rounded[3] = false
-                rounded[4] = false
-            end
-
-            local r = 3
-            local c = 0.551915024494 * r
-            if rounded[0] then
-                ass:move_to(x0 + r, y0)
-            else
-                ass:move_to(x0,y0)
-            end
-            if rounded[1] then
-                ass:line_to(x1 - r, y0)
-                ass:bezier_curve(x1 - r + c, y0, x1, y0 + r - c, x1, y0 + r)
-            else
-                ass:line_to(x1, y0)
-            end
-            if rounded[2] then
-                ass:line_to(x1, y1 - r)
-                ass:bezier_curve(x1, y1 - r + c, x1 - r + c, y1, x1 - r, y1)
-            else
-                ass:line_to(x1, y1)
-            end
-            if rounded[3] then
-                ass:line_to(x0 + r, y1)
-                ass:bezier_curve(x0 + r - c, y1, x0, y1 - r + c, x0, y1 - r)
-            else
-                ass:line_to(x0, y1)
-            end
-            if rounded[4] then
-                ass:line_to(x0, y0 + r)
-                ass:bezier_curve(x0, y0 + r - c, x0 + r - c, y0, x0 + r, y0)
-            else
-                ass:line_to(x0, y0)
-            end
-
-            ass:draw_stop()
-        end
-        local image = function()
-            draw(ass
-                , (dim.top_left.x + dim.size.w/2 - ww/2) / opts.minimap_scale
-                , (dim.top_left.y + dim.size.h/2 - wh/2) / opts.minimap_scale
-                , dim.size.w / opts.minimap_scale
-                , dim.size.h / opts.minimap_scale
-                , opts.minimap_image_opacity
-                , opts.minimap_image_color
-            )
-        end
-        local view = function()
-            draw(ass
-                , 0
-                , 0
-                , ww / opts.minimap_scale
-                , wh / opts.minimap_scale
-                , opts.minimap_view_opacity
-                , opts.minimap_view_color
-            )
-        end
-        if opts.minimap_view_above_image then
-            image()
-            view()
-        else
-            view()
-            image()
-        end
-
-        mp.set_osd_ass(ww, wh, ass.text)
-    end)
+    mp.register_idle(refresh_minimap)
 end
 
 function disable_minimap()
     if not minimap_enabled then return end
     minimap_enabled = false
+    mp.unregister_idle(refresh_minimap)
 end
 
 if opts.minimap_enabled then
