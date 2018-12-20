@@ -35,31 +35,28 @@ opts.minimap_max_size=split(opts.minimap_max_size)
 local msg = require 'mp.msg'
 local assdraw = require 'mp.assdraw'
 
-local needs_adjusting = false
-local current_idle = nil
-local zoom_increment = 0
+local ass = { -- shared ass state
+    refresh = true,
+    status_line = "",
+    minimap = "",
+}
 
-function register_idle(func)
-    current_idle = func
-    mp.register_idle(current_idle)
-end
+local cleanup = nil -- function set up by drag-to-pan/pan-follows cursor and must be called to clean lingering state
 
-function cleanup()
-    mp.remove_key_binding("image-viewer-impl")
-    if current_idle then mp.unregister_idle(current_idle) end
-    needs_adjusting = false
-    zoom_increment = 0
-end
-
-function compute_video_dimensions()
+video_dimensions_stale = true
+function get_video_dimensions()
     -- this function is very much ripped from video/out/aspect.c in mpv's source
+    if not video_dimensions_stale then return _video_dimensions end
     local video_params = mp.get_property_native("video-out-params")
     if not video_params then return nil end
-    local video_dimensions = {
+    local timestamp = _video_dimensions and _video_dimensions.timestamp+1 or 1
+    _video_dimensions = {
+        timestamp = timestamp,
         top_left = {x = 0, y = 0},
         bottom_right = {x = 0, y = 0},
         size = {h = 0, w = 0},
     }
+    video_dimensions_stale = false
     local keep_aspect = mp.get_property_bool("keepaspect")
     local w = video_params["w"]
     local h = video_params["h"]
@@ -122,54 +119,83 @@ function compute_video_dimensions()
 
         local align_x = mp.get_property_number("video-align-x")
         local pan_x = mp.get_property_number("video-pan-x")
-        video_dimensions.top_left.x, video_dimensions.bottom_right.x = split_scaling(window_w, scaled_width, zoom, align_x, pan_x)
+        _video_dimensions.top_left.x, _video_dimensions.bottom_right.x = split_scaling(window_w, scaled_width, zoom, align_x, pan_x)
 
         local align_y = mp.get_property_number("video-align-y")
         local pan_y = mp.get_property_number("video-pan-y")
-        video_dimensions.top_left.y, video_dimensions.bottom_right.y = split_scaling(window_h,  scaled_height, zoom, align_y, pan_y)
+        _video_dimensions.top_left.y, _video_dimensions.bottom_right.y = split_scaling(window_h,  scaled_height, zoom, align_y, pan_y)
     else
-        video_dimensions.top_left.x = 0
-        video_dimensions.bottom_right.x = window_w
-        video_dimensions.top_left.y = 0
-        video_dimensions.bottom_right.y = window_h
+        _video_dimensions.top_left.x = 0
+        _video_dimensions.bottom_right.x = window_w
+        _video_dimensions.top_left.y = 0
+        _video_dimensions.bottom_right.y = window_h
     end
-    video_dimensions.size.w = video_dimensions.bottom_right.x - video_dimensions.top_left.x
-    video_dimensions.size.h = video_dimensions.bottom_right.y - video_dimensions.top_left.y
-    return video_dimensions
+    _video_dimensions.size.w = _video_dimensions.bottom_right.x - _video_dimensions.top_left.x
+    _video_dimensions.size.h = _video_dimensions.bottom_right.y - _video_dimensions.top_left.y
+    return _video_dimensions
+end
+
+for _, p in ipairs({
+    "keepaspect",
+    "video-out-params",
+    "video-unscaled",
+    "panscan",
+    "video-zoom",
+    "video-align-x",
+    "video-pan-x",
+    "video-align-y",
+    "video-pan-y",
+    "osd-width",
+    "osd-height",
+}) do
+    mp.observe_property(p, "native", function() video_dimensions_stale = true end)
 end
 
 function drag_to_pan_handler(table)
-    cleanup()
+    if cleanup then
+        cleanup()
+        cleanup = nil
+    end
     if table["event"] == "down" then
-        local video_dimensions = compute_video_dimensions()
+        local video_dimensions = get_video_dimensions()
         if not video_dimensions then return end
         local mouse_pos_origin, video_pan_origin = {}, {}
+        local moved = false
         mouse_pos_origin.x, mouse_pos_origin.y = mp.get_mouse_pos()
         video_pan_origin.x = mp.get_property("video-pan-x")
         video_pan_origin.y = mp.get_property("video-pan-y")
-        register_idle(function()
-            if needs_adjusting then
+        local idle = function()
+            if moved then
                 local mX, mY = mp.get_mouse_pos()
                 local pX = video_pan_origin.x + (mX - mouse_pos_origin.x) / video_dimensions.size.w
                 local pY = video_pan_origin.y + (mY - mouse_pos_origin.y) / video_dimensions.size.h
                 mp.command("no-osd set video-pan-x " .. pX .. "; no-osd set video-pan-y " .. pY)
-                needs_adjusting = false
+                moved = false
             end
-        end)
-        mp.add_forced_key_binding("mouse_move", "image-viewer-impl",
-            function() needs_adjusting = true end
+        end
+        mp.register_idle(idle)
+        mp.add_forced_key_binding("mouse_move", "drag-to-pan-update",
+            function() moved = true end
         )
+        cleanup = function()
+            mp.remove_key_binding("drag-to-pan-update")
+            mp.unregister_idle(idle)
+        end
     end
 end
 
 function pan_follows_cursor_handler(table)
-    cleanup()
+    if cleanup then
+        cleanup()
+        cleanup = nil
+    end
     if table["event"] == "down" then
-        local video_dimensions = compute_video_dimensions()
+        local video_dimensions = get_video_dimensions()
         if not video_dimensions then return end
         local window_w, window_h = mp.get_osd_size()
-        register_idle(function()
-            if needs_adjusting then
+        local moved = true
+        local idle = function()
+            if moved then
                 local mX, mY = mp.get_mouse_pos()
                 local x = math.min(1, math.max(- 2 * mX / window_w + 1, -1))
                 local y = math.min(1, math.max(- 2 * mY / window_h + 1, -1))
@@ -188,50 +214,44 @@ function pan_follows_cursor_handler(table)
                 if command ~= "" then
                     mp.command(command)
                 end
-                needs_adjusting = false
+                moved = false
             end
+        end
+        mp.register_idle(idle)
+        mp.add_forced_key_binding("mouse_move", "pan-follows-cursor-update", function()
+            moved = true
         end)
-        needs_adjusting = true
-        mp.add_forced_key_binding("mouse_move", "image-viewer-impl", function()
-            needs_adjusting = true
-        end)
+        cleanup = function()
+            mp.remove_key_binding("pan-follows-cursor-update")
+            mp.unregister_idle(idle)
+        end
     end
 end
 
 function cursor_centric_zoom_handler(amt)
-    local arg_num = tonumber(amt)
-    if not arg_num or arg_num == 0 then return end
-    if zoom_increment == 0 then
-        cleanup()
-        local video_dimensions = compute_video_dimensions()
-        if not video_dimensions then return end
-        local mouse_pos_origin, video_pan_origin = {}, {}
-        mouse_pos_origin.x, mouse_pos_origin.y = mp.get_mouse_pos()
-        video_pan_origin.x = mp.get_property("video-pan-x")
-        video_pan_origin.y = mp.get_property("video-pan-y")
-        local zoom_origin = mp.get_property("video-zoom")
-        -- how far the cursor is form the middle of the video (in percentage)
-        local rx = (video_dimensions.top_left.x + video_dimensions.size.w / 2 - mouse_pos_origin.x) / (video_dimensions.size.w / 2)
-        local ry = (video_dimensions.top_left.y + video_dimensions.size.h / 2 - mouse_pos_origin.y) / (video_dimensions.size.h / 2)
-        register_idle(function()
-            if needs_adjusting then
-                -- the size in pixels of the (in|de)crement
-                local diffHeight = (2 ^ zoom_increment - 1) * video_dimensions.size.h
-                local diffWidth  = (2 ^ zoom_increment - 1) * video_dimensions.size.w
-                local newPanX = (video_pan_origin.x * video_dimensions.size.w + rx * diffWidth / 2) / (video_dimensions.size.w + diffWidth)
-                local newPanY = (video_pan_origin.y * video_dimensions.size.h + ry * diffHeight / 2) / (video_dimensions.size.h + diffHeight)
-                mp.command("no-osd set video-zoom " .. zoom_origin + zoom_increment .. "; no-osd set video-pan-x " .. newPanX .. "; no-osd set video-pan-y " .. newPanY)
-                needs_adjusting = false
-            end
-        end)
-        mp.add_forced_key_binding("mouse_move", "image-viewer-impl", cleanup)
-    end
-    zoom_increment = zoom_increment + arg_num
-    needs_adjusting = true
+    local zoom_inc = tonumber(amt)
+    if not zoom_inc or zoom_inc == 0 then return end
+    local video_dimensions = get_video_dimensions()
+    if not video_dimensions then return end
+    local mouse_pos_origin, video_pan_origin = {}, {}
+    mouse_pos_origin.x, mouse_pos_origin.y = mp.get_mouse_pos()
+    video_pan_origin.x = mp.get_property("video-pan-x")
+    video_pan_origin.y = mp.get_property("video-pan-y")
+    local zoom_origin = mp.get_property("video-zoom")
+    -- how far the cursor is form the middle of the video (in percentage)
+    local rx = (video_dimensions.top_left.x + video_dimensions.size.w / 2 - mouse_pos_origin.x) / (video_dimensions.size.w / 2)
+    local ry = (video_dimensions.top_left.y + video_dimensions.size.h / 2 - mouse_pos_origin.y) / (video_dimensions.size.h / 2)
+
+    -- the size in pixels of the (in|de)crement
+    local diffHeight = (2 ^ zoom_inc - 1) * video_dimensions.size.h
+    local diffWidth  = (2 ^ zoom_inc - 1) * video_dimensions.size.w
+    local newPanX = (video_pan_origin.x * video_dimensions.size.w + rx * diffWidth / 2) / (video_dimensions.size.w + diffWidth)
+    local newPanY = (video_pan_origin.y * video_dimensions.size.h + ry * diffHeight / 2) / (video_dimensions.size.h + diffHeight)
+    mp.command("no-osd set video-zoom " .. zoom_origin + zoom_inc .. "; no-osd set video-pan-x " .. newPanX .. "; no-osd set video-pan-y " .. newPanY)
 end
 
 function align_border(x, y)
-    local video_dimensions = compute_video_dimensions()
+    local video_dimensions = get_video_dimensions()
     if not video_dimensions then return end
     local window_w, window_h = mp.get_osd_size()
     local x, y = tonumber(x), tonumber(y)
@@ -256,7 +276,7 @@ function pan_image(axis, amount, zoom_invariant, image_constrained)
     local prop = "video-pan-" .. axis
     local old_pan = mp.get_property_number(prop)
     if image_constrained == "yes" then
-        local video_dimensions = compute_video_dimensions()
+        local video_dimensions = get_video_dimensions()
         if not video_dimensions then return end
         local measure = axis == "x" and "w" or "h"
         local window = {}
@@ -299,7 +319,7 @@ function rotate_video(amt)
 end
 
 function reset_pan_if_visible()
-    local video_dimensions = compute_video_dimensions()
+    local video_dimensions = get_video_dimensions()
     if not video_dimensions then return end
     local window_w, window_h = mp.get_osd_size()
     local command = ""
@@ -463,13 +483,16 @@ if opts.command_on_image_loaded ~= "" or opts.command_on_non_image_loaded ~= "" 
 end
 
 local minimap_enabled = false
-local minimap_stale = true
+
+function draw_minimap()
+    
+end
 
 function enable_minimap()
     if minimap_enabled then return end
     minimap_enabled = true
     mp.register_idle(function()
-        local dim = compute_video_dimensions()
+        local dim = get_video_dimensions()
         local ww, wh = mp.get_osd_size()
         if not dim then return end
         local center = {
