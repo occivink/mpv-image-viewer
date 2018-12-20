@@ -1,21 +1,43 @@
-local needs_adjusting = false
-local current_idle = nil
-local zoom_increment = 0
-
 local opts = {
     pan_follows_cursor_margin = 50,
-    pan_follows_cursor_move_if_full_view = true,
-    status_line_enabled = true,
+    pan_follows_cursor_move_if_full_view = false,
+    status_line_enabled = false,
     status_line_position = "bottom_left",
     status_line_size = 36,
     status_line = "${filename} [${playlist-pos-1}/${playlist-count}]",
+
+    minimap_enabled = true,
+    minimap_center = "92,92",
+    minimap_scale = 12,
+    minimap_max_size = "16,16",
+    minimap_image_opacity = "88",
+    minimap_image_color = "BBBBBB",
+    minimap_view_opacity = "BB",
+    minimap_view_color = "222222",
+    minimap_view_above_image = true,
+    minimap_hide_when_full_image_in_view = false,
+
     command_on_first_image_loaded="",
     command_on_image_loaded="",
     command_on_non_image_loaded="",
 }
 (require 'mp.options').read_options(opts)
+function split(input)
+    local ret = {}
+    for str in string.gmatch(input, "([^,]+)") do
+        ret[#ret + 1] = tonumber(str)
+    end
+    return ret
+end
+opts.minimap_center=split(opts.minimap_center)
+opts.minimap_max_size=split(opts.minimap_max_size)
+
 local msg = require 'mp.msg'
 local assdraw = require 'mp.assdraw'
+
+local needs_adjusting = false
+local current_idle = nil
+local zoom_increment = 0
 
 function register_idle(func)
     current_idle = func
@@ -299,7 +321,7 @@ function force_print_filename()
 end
 
 local status_line_enabled = false
-local refresh_status_line = true
+local status_line_stale = true
 
 function mark_status_line_stale()
     status_line_stale = true
@@ -440,6 +462,136 @@ if opts.command_on_image_loaded ~= "" or opts.command_on_non_image_loaded ~= "" 
     end)
 end
 
+local minimap_enabled = false
+local minimap_stale = true
+
+function enable_minimap()
+    if minimap_enabled then return end
+    minimap_enabled = true
+    mp.register_idle(function()
+        local dim = compute_video_dimensions()
+        local ww, wh = mp.get_osd_size()
+        if not dim then return end
+        local center = {
+            x=opts.minimap_center[1]/100*ww,
+            y=opts.minimap_center[2]/100*wh
+        }
+        local ass = assdraw.ass_new()
+        local cutoff = {
+            x=opts.minimap_max_size[1]/100*ww/2,
+            y=opts.minimap_max_size[2]/100*wh/2
+        }
+        local draw = function(ass, x, y, w, h, opacity, color)
+            ass:new_event()
+            ass:pos(center.x, center.y)
+            ass:append("{\\bord0}")
+            ass:append("{\\shad0}")
+            ass:append("{\\c&" .. color .. "&}")
+            ass:append("{\\2a&HFF}")
+            ass:append("{\\3a&HFF}")
+            ass:append("{\\4a&HFF}")
+            ass:append("{\\1a&H" .. opacity .. "}")
+            w=w/2
+            h=h/2
+            ass:draw_start()
+            local rounded = {true,true,true,true} -- tl, tr, br, bl
+            local x0,y0,x1,y1 = x-w, y-h, x+w, y+h
+            if x0 < -cutoff.x then
+                x0 = -cutoff.x
+                rounded[4] = false
+                rounded[1] = false
+            end
+            if y0 < -cutoff.y then
+                y0 = -cutoff.y
+                rounded[1] = false
+                rounded[2] = false
+            end
+            if x1 > cutoff.x then
+                x1 = cutoff.x
+                rounded[2] = false
+                rounded[3] = false
+            end
+            if y1 > cutoff.y then
+                y1 = cutoff.y
+                rounded[3] = false
+                rounded[4] = false
+            end
+
+            local r = 3
+            local c = 0.551915024494 * r
+            if rounded[0] then
+                ass:move_to(x0 + r, y0)
+            else
+                ass:move_to(x0,y0)
+            end
+            if rounded[1] then
+                ass:line_to(x1 - r, y0)
+                ass:bezier_curve(x1 - r + c, y0, x1, y0 + r - c, x1, y0 + r)
+            else
+                ass:line_to(x1, y0)
+            end
+            if rounded[2] then
+                ass:line_to(x1, y1 - r)
+                ass:bezier_curve(x1, y1 - r + c, x1 - r + c, y1, x1 - r, y1)
+            else
+                ass:line_to(x1, y1)
+            end
+            if rounded[3] then
+                ass:line_to(x0 + r, y1)
+                ass:bezier_curve(x0 + r - c, y1, x0, y1 - r + c, x0, y1 - r)
+            else
+                ass:line_to(x0, y1)
+            end
+            if rounded[4] then
+                ass:line_to(x0, y0 + r)
+                ass:bezier_curve(x0, y0 + r - c, x0 + r - c, y0, x0 + r, y0)
+            else
+                ass:line_to(x0, y0)
+            end
+
+            ass:draw_stop()
+        end
+        local image = function()
+            draw(ass
+                , (dim.top_left.x + dim.size.w/2 - ww/2) / opts.minimap_scale
+                , (dim.top_left.y + dim.size.h/2 - wh/2) / opts.minimap_scale
+                , dim.size.w / opts.minimap_scale
+                , dim.size.h / opts.minimap_scale
+                , opts.minimap_image_opacity
+                , opts.minimap_image_color
+            )
+        end
+        local view = function()
+            draw(ass
+                , 0
+                , 0
+                , ww / opts.minimap_scale
+                , wh / opts.minimap_scale
+                , opts.minimap_view_opacity
+                , opts.minimap_view_color
+            )
+        end
+        if opts.minimap_view_above_image then
+            image()
+            view()
+        else
+            view()
+            image()
+        end
+
+        mp.set_osd_ass(ww, wh, ass.text)
+    end)
+end
+
+function disable_minimap()
+    if not minimap_enabled then return end
+    minimap_enabled = false
+end
+
+if opts.minimap_enabled then
+    enable_minimap()
+end
+
 mp.add_key_binding(nil, "drag-to-pan", drag_to_pan_handler, {complex = true})
 mp.add_key_binding(nil, "pan-follows-cursor", pan_follows_cursor_handler, {complex = true})
 mp.add_key_binding(nil, "cursor-centric-zoom", cursor_centric_zoom_handler)
@@ -452,3 +604,7 @@ mp.add_key_binding(nil, "force-print-filename", force_print_filename)
 mp.add_key_binding(nil, "enable-status-line", enable_status_line)
 mp.add_key_binding(nil, "disable-status-line", disable_status_line)
 mp.add_key_binding(nil, "toggle-status-line", function() if status_line_enabled then disable_status_line() else enable_status_line() end end)
+
+mp.add_key_binding(nil, "enable-minimap", enable_minimap)
+mp.add_key_binding(nil, "disable-minimap", disable_minimap)
+mp.add_key_binding(nil, "toggle-minimap", function() if minimap_enabled then disable_minimap() else enable_minimap() end end)
