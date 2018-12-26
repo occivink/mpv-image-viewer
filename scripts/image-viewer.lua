@@ -42,6 +42,23 @@ local ass = { -- shared ass state
 }
 
 local cleanup = nil -- function set up by drag-to-pan/pan-follows cursor and must be called to clean lingering state
+local mouse_move_callbacks = {} -- functions that are called when mouse_move is triggered
+function add_mouse_move_callback(key, func)
+    if #mouse_move_callbacks == 0 then
+        mp.add_forced_key_binding("mouse_move", "image-viewer-internal", function()
+            for _, func in pairs(mouse_move_callbacks) do
+                func()
+            end
+        end)
+    end
+    mouse_move_callbacks[key] = func
+end
+function remove_mouse_move_callback(key)
+    mouse_move_callbacks[key] = nil
+    if #mouse_move_callbacks == 0 then
+        mp.remove_key_binding("image-viewer-internal")
+    end
+end
 
 video_dimensions_stale = true
 function get_video_dimensions()
@@ -174,11 +191,9 @@ function drag_to_pan_handler(table)
             end
         end
         mp.register_idle(idle)
-        mp.add_forced_key_binding("mouse_move", "drag-to-pan-update",
-            function() moved = true end
-        )
+        add_mouse_move_callback("drag-to-pan", function() moved = true end)
         cleanup = function()
-            mp.remove_key_binding("drag-to-pan-update")
+            remove_mouse_move_callback("drag-to-pan")
             mp.unregister_idle(idle)
         end
     end
@@ -218,11 +233,9 @@ function pan_follows_cursor_handler(table)
             end
         end
         mp.register_idle(idle)
-        mp.add_forced_key_binding("mouse_move", "pan-follows-cursor-update", function()
-            moved = true
-        end)
+        add_mouse_move_callback("pan-follows-cursor", function() moved = true end)
         cleanup = function()
-            mp.remove_key_binding("pan-follows-cursor-update")
+            remove_mouse_move_callback("pan-follows-cursor")
             mp.unregister_idle(idle)
         end
     end
@@ -648,6 +661,8 @@ mp.add_key_binding(nil, "pan-image", pan_image)
 mp.add_key_binding(nil, "rotate-video", rotate_video)
 mp.add_key_binding(nil, "reset-pan-if-visible", reset_pan_if_visible)
 mp.add_key_binding(nil, "force-print-filename", force_print_filename)
+
+mp.add_key_binding(nil, "ruler", start_ruler)
 
 mp.add_key_binding(nil, "enable-status-line", enable_status_line)
 mp.add_key_binding(nil, "disable-status-line", disable_status_line)
