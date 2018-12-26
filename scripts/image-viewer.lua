@@ -15,7 +15,7 @@ local opts = {
     minimap_view_opacity = "BB",
     minimap_view_color = "222222",
     minimap_view_above_image = true,
-    minimap_hide_when_full_image_in_view = false,
+    minimap_hide_when_full_image_in_view = true,
 
     command_on_first_image_loaded="",
     command_on_image_loaded="",
@@ -38,6 +38,7 @@ local assdraw = require 'mp.assdraw'
 local ass = { -- shared ass state
     status_line = "",
     minimap = "",
+    ruler = "",
 }
 
 local cleanup = nil -- function set up by drag-to-pan/pan-follows cursor and must be called to clean lingering state
@@ -495,10 +496,25 @@ end
 
 function refresh_minimap()
     local dim = get_video_dimensions()
-    if not dim then return end
+    if not dim then
+        ass.minimap = ""
+        draw_ass()
+        return
+    end
     if _old_timestamp and dim.timestamp == _old_timestamp then return end
     _old_timestamp = dim.timestamp
     local ww, wh = mp.get_osd_size()
+    if opts.minimap_hide_when_full_image_in_view then
+        if dim.top_left.x >= 0 and
+           dim.top_left.y >= 0 and
+           dim.bottom_right.x <= ww and
+           dim.bottom_right.y <= wh
+        then
+            ass.minimap = ""
+            draw_ass()
+            return
+        end
+    end
     local center = {
         x=opts.minimap_center[1]/100*ww,
         y=opts.minimap_center[2]/100*wh
@@ -615,6 +631,8 @@ end
 function disable_minimap()
     if not minimap_enabled then return end
     minimap_enabled = false
+    ass.minimap = a.text
+    draw_ass()
     mp.unregister_idle(refresh_minimap)
 end
 

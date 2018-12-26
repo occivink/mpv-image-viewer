@@ -34,7 +34,8 @@ The `scripts/image-viewer.lua` script offers several commands that are common in
 `rotate-video`: rotate the image in 90 degrees increment  
 `reset-pan-if-visible`: reset the pan if the entire image is visible  
 `force-print-filename`: print the filename, even if console output is disabled  
-`enable-status-line`, `disable-status-line`, `toggle-status-line`: show a simple status line
+`enable-status-line`, `disable-status-line`, `toggle-status-line`: show a simple status line  
+`enable-minimap`, `disable-minimap`, `toggle-minimap`: show a "minimap" that displays the position of the image relatively to the view  
 
 They don't have any default bindings, see the example `input.conf`, and in the configuration bind them.
 Some of these commands, as well as the status line can be configured via `script-opts/image_viewer.conf`.
