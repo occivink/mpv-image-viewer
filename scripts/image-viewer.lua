@@ -1,6 +1,7 @@
 local opts = {
     pan_follows_cursor_margin = 50,
     pan_follows_cursor_move_if_full_view = false,
+
     status_line_enabled = false,
     status_line_position = "bottom_left",
     status_line_size = 36,
@@ -17,6 +18,17 @@ local opts = {
     minimap_view_above_image = true,
     minimap_hide_when_full_image_in_view = true,
 
+    ruler_show_distance=true,
+    ruler_show_coordinates=true,
+    ruler_coordinates_space="both",
+    ruler_show_angles="degrees",
+    ruler_line_width=2,
+    ruler_dots_radius=3,
+    ruler_confirm_bindings="MBTN_LEFT,ENTER",
+    ruler_exit_bindings="ESC",
+    ruler_set_first_point_on_begin=false,
+    ruler_clear_on_second_point_set=false,
+
     command_on_first_image_loaded="",
     command_on_image_loaded="",
     command_on_non_image_loaded="",
@@ -25,12 +37,31 @@ local opts = {
 function split(input)
     local ret = {}
     for str in string.gmatch(input, "([^,]+)") do
-        ret[#ret + 1] = tonumber(str)
+        ret[#ret + 1] = str
     end
     return ret
 end
-opts.minimap_center=split(opts.minimap_center)
-opts.minimap_max_size=split(opts.minimap_max_size)
+function str_to_num(array)
+    local ret = {}
+    for _, v in ipairs(array) do
+        ret[#ret + 1] = tonumber(v)
+    end
+    return ret
+end
+opts.minimap_center=str_to_num(split(opts.minimap_center))
+opts.minimap_max_size=str_to_num(split(opts.minimap_max_size))
+opts.ruler_confirm_bindings=split(opts.ruler_confirm_bindings)
+opts.ruler_exit_bindings=split(opts.ruler_exit_bindings)
+
+function clamp(value, low, high)
+    if value <= low then
+        return low
+    elseif value >= high then
+        return high
+    else
+        return value
+    end
+end
 
 local msg = require 'mp.msg'
 local assdraw = require 'mp.assdraw'
@@ -55,9 +86,10 @@ function add_mouse_move_callback(key, func)
 end
 function remove_mouse_move_callback(key)
     mouse_move_callbacks[key] = nil
-    if #mouse_move_callbacks == 0 then
-        mp.remove_key_binding("image-viewer-internal")
+    for _,_ in pairs(mouse_move_callbacks) do
+        return
     end
+    mp.remove_key_binding("image-viewer-internal")
 end
 
 video_dimensions_stale = true
@@ -65,15 +97,19 @@ function get_video_dimensions()
     -- this function is very much ripped from video/out/aspect.c in mpv's source
     if not video_dimensions_stale then return _video_dimensions end
     local video_params = mp.get_property_native("video-out-params")
-    if not video_params then return nil end
-    local timestamp = _video_dimensions and _video_dimensions.timestamp+1 or 1
+    if not video_params then
+        _video_dimensions = nil
+        return nil
+    end
+    if not _timestamp then _timestamp = 0 end
+    _timestamp = _timestamp + 1
     _video_dimensions = {
-        timestamp = timestamp,
+        timestamp = _timestamp,
         top_left = {x = 0, y = 0},
         bottom_right = {x = 0, y = 0},
-        size = {h = 0, w = 0},
+        size = {w = 0, h = 0},
+        ratios = {w = 0, h = 0}, -- by how much the original video got scaled
     }
-    video_dimensions_stale = false
     local keep_aspect = mp.get_property_bool("keepaspect")
     local w = video_params["w"]
     local h = video_params["h"]
@@ -149,6 +185,9 @@ function get_video_dimensions()
     end
     _video_dimensions.size.w = _video_dimensions.bottom_right.x - _video_dimensions.top_left.x
     _video_dimensions.size.h = _video_dimensions.bottom_right.y - _video_dimensions.top_left.y
+    _video_dimensions.ratios.w = _video_dimensions.size.w / w
+    _video_dimensions.ratios.h = _video_dimensions.size.h / h
+    video_dimensions_stale = false
     return _video_dimensions
 end
 
@@ -186,7 +225,7 @@ function drag_to_pan_handler(table)
                 local mX, mY = mp.get_mouse_pos()
                 local pX = video_pan_origin.x + (mX - mouse_pos_origin.x) / video_dimensions.size.w
                 local pY = video_pan_origin.y + (mY - mouse_pos_origin.y) / video_dimensions.size.h
-                mp.command("no-osd set video-pan-x " .. pX .. "; no-osd set video-pan-y " .. pY)
+                mp.command("no-osd set video-pan-x " .. clamp(pX, -3, 3) .. "; no-osd set video-pan-y " .. clamp(pY, -3, 3))
                 moved = false
             end
         end
@@ -217,12 +256,12 @@ function pan_follows_cursor_handler(table)
                 local command = ""
                 local margin, move_full = opts.pan_follows_cursor_margin, opts.pan_follows_cursor_move_if_full_view
                 if (not move_full and window_w < video_dimensions.size.w) then
-                    command = command .. "no-osd set video-pan-x " .. x * (video_dimensions.size.w - window_w + 2 * margin) / (2 * video_dimensions.size.w) .. ";"
+                    command = command .. "no-osd set video-pan-x " .. clamp(x * (video_dimensions.size.w - window_w + 2 * margin) / (2 * video_dimensions.size.w), -3, 3) .. ";"
                 elseif mp.get_property_number("video-pan-x") ~= 0 then
                     command = command .. "no-osd set video-pan-x " .. "0;"
                 end
                 if (not move_full and window_h < video_dimensions.size.h) then
-                    command = command .. "no-osd set video-pan-y " .. y * (video_dimensions.size.h - window_h + 2 * margin) / (2 * video_dimensions.size.h) .. ";"
+                    command = command .. "no-osd set video-pan-y " .. clamp(y * (video_dimensions.size.h - window_h + 2 * margin) / (2 * video_dimensions.size.h), -3, 3) .. ";"
                 elseif mp.get_property_number("video-pan-y") ~= 0 then
                     command = command .. "no-osd set video-pan-y " .. "0;"
                 end
@@ -260,7 +299,7 @@ function cursor_centric_zoom_handler(amt)
     local diffWidth  = (2 ^ zoom_inc - 1) * video_dimensions.size.w
     local newPanX = (video_pan_origin.x * video_dimensions.size.w + rx * diffWidth / 2) / (video_dimensions.size.w + diffWidth)
     local newPanY = (video_pan_origin.y * video_dimensions.size.h + ry * diffHeight / 2) / (video_dimensions.size.h + diffHeight)
-    mp.command("no-osd set video-zoom " .. zoom_origin + zoom_inc .. "; no-osd set video-pan-x " .. newPanX .. "; no-osd set video-pan-y " .. newPanY)
+    mp.command("no-osd set video-zoom " .. zoom_origin + zoom_inc .. "; no-osd set video-pan-x " .. clamp(newPanX, -3, 3) .. "; no-osd set video-pan-y " .. clamp(newPanY, -3, 3))
 end
 
 function align_border(x, y)
@@ -270,10 +309,10 @@ function align_border(x, y)
     local x, y = tonumber(x), tonumber(y)
     local command = ""
     if x then
-        command = command .. "no-osd set video-pan-x " .. x * (video_dimensions.size.w - window_w) / (2 * video_dimensions.size.w) .. ";"
+        command = command .. "no-osd set video-pan-x " .. clamp(x * (video_dimensions.size.w - window_w) / (2 * video_dimensions.size.w), -3, 3) .. ";"
     end
     if y then
-        command = command .. "no-osd set video-pan-y " .. y * (video_dimensions.size.h - window_h) / (2 * video_dimensions.size.h) .. ";"
+        command = command .. "no-osd set video-pan-y " .. clamp(y * (video_dimensions.size.h - window_h) / (2 * video_dimensions.size.h), -3, 3) .. ";"
     end
     if command ~= "" then
         mp.command(command)
@@ -358,7 +397,7 @@ function draw_ass()
     local merge = function(a, b)
         return b ~= "" and (a .. "\n" .. b) or a
     end
-    mp.set_osd_ass(ww, wh, merge(ass.status_line, ass.minimap))
+    mp.set_osd_ass(ww, wh, merge(merge(ass.status_line, ass.minimap), ass.ruler))
 end
 
 local status_line_enabled = false
@@ -514,8 +553,8 @@ function refresh_minimap()
         draw_ass()
         return
     end
-    if _old_timestamp and dim.timestamp == _old_timestamp then return end
-    _old_timestamp = dim.timestamp
+    if _minimap_old_timestamp and dim.timestamp == _minimap_old_timestamp then return end
+    _minimap_old_timestamp = dim.timestamp
     local ww, wh = mp.get_osd_size()
     if opts.minimap_hide_when_full_image_in_view then
         if dim.top_left.x >= 0 and
@@ -653,6 +692,244 @@ if opts.minimap_enabled then
     enable_minimap()
 end
 
+local ruler_state = 0 -- {0,1,2,3} = {inactive,setting first point,setting second point,done}
+local ruler_first_point = nil -- in video space coordinates
+local ruler_second_point = nil -- in video space coordinates
+
+function cursor_video_space()
+    local dim = get_video_dimensions()
+    if not dim then return nil end
+    local mx, my = mp.get_mouse_pos()
+    local ret = {}
+    ret.x = (mx - dim.top_left.x) / dim.ratios.w
+    ret.y = (my - dim.top_left.y) / dim.ratios.h
+    return ret
+end
+function video_space_to_screen(point)
+    local dim = get_video_dimensions()
+    if not dim then return nil end
+    local ret = {}
+    ret.x = point.x * dim.ratios.w + dim.top_left.x
+    ret.y = point.y * dim.ratios.h + dim.top_left.y
+    return ret
+end
+
+function refresh_ruler()
+    local dim = get_video_dimensions()
+    if not dim then
+        ass.ruler = ""
+        draw_ass()
+        return
+    end
+
+    local line_start = {}
+    local line_end = {}
+    if ruler_second_point then
+        line_start.image = ruler_first_point
+        line_start.screen = video_space_to_screen(ruler_first_point)
+        line_end.image = ruler_second_point
+        line_end.screen = video_space_to_screen(ruler_second_point)
+    elseif ruler_first_point then
+        line_start.image = ruler_first_point
+        line_start.screen = video_space_to_screen(ruler_first_point)
+        line_end.image = cursor_video_space()
+        line_end.screen = {}
+        line_end.screen.x, line_end.screen.y = mp.get_mouse_pos()
+    else
+        local mx, my = mp.get_mouse_pos()
+        line_start.image = cursor_video_space()
+        line_start.screen = {}
+        line_start.screen.x, line_start.screen.y = mp.get_mouse_pos()
+        line_end = line_start
+    end
+    local distinct = (math.abs(line_start.screen.x - line_end.screen.x) >= 1
+                   or math.abs(line_start.screen.y - line_end.screen.y) >= 1)
+
+    local a = assdraw:ass_new()
+    local draw_setup = function(bord)
+        a:new_event()
+        a:pos(0,0)
+        a:append("{\\bord" .. bord .. "}")
+        a:append("{\\shad0}")
+        a:append("{\\3c&H000000&}")
+        a:append("{\\1a&HFF}")
+        a:append("{\\2a&HFF}")
+        a:append("{\\3a&H00}")
+        a:append("{\\4a&HFF}")
+        a:draw_start()
+    end
+    local dot = function(pos, size)
+        draw_setup(size)
+        a:move_to(pos.x, pos.y-0.5)
+        a:line_to(pos.x, pos.y+0.5)
+    end
+    local line = function(from, to, size)
+        draw_setup(size)
+        a:move_to(from.x, from.y)
+        a:line_to(to.x, to.y)
+    end
+    if distinct then
+        dot(line_start.screen, opts.ruler_dots_radius)
+        line(line_start.screen, line_end.screen, opts.ruler_line_width)
+        dot(line_end.screen, opts.ruler_dots_radius)
+    else
+        dot(line_start.screen, opts.ruler_dots_radius)
+    end
+
+    local line_info = function()
+        if not opts.ruler_show_distance then return end
+        a:new_event()
+        a:append("{\\fs36}{\\bord1}")
+        a:pos((line_start.screen.x + line_end.screen.x) / 2, (line_start.screen.y + line_end.screen.y) / 2)
+        local an = 1
+        if line_start.image.x < line_end.image.x then an = an + 2 end
+        if line_start.image.y < line_end.image.y then an = an + 6 end
+        a:an(an)
+        local image = math.sqrt(math.pow(line_start.image.x - line_end.image.x, 2) + math.pow(line_start.image.y - line_end.image.y, 2))
+        local screen = math.sqrt(math.pow(line_start.screen.x - line_end.screen.x, 2) + math.pow(line_start.screen.y - line_end.screen.y, 2))
+        if opts.ruler_coordinates_space == "both" then
+            a:append(string.format("image: %.1f\\Nscreen: %.1f", image, screen))
+        elseif opts.ruler_coordinates_space == "image" then
+            a:append(string.format("%.1f", image))
+        elseif opts.ruler_coordinates_space == "window" then
+            a:append(string.format("%.1f", screen))
+        end
+    end
+    local dot_info = function(pos, opposite)
+        if not opts.ruler_show_coordinates then return end
+        a:new_event()
+        a:append("{\\fs36}{\\bord1}")
+        a:pos(pos.screen.x, pos.screen.y)
+        local an
+        if distinct then
+            an = 1
+            if line_start.image.x > line_end.image.x then an = an + 2 end
+            if line_start.image.y < line_end.image.y then an = an + 6 end
+        else
+            an = 7
+        end
+        if opposite then
+            an = 9 + 1 - an
+        end
+        a:an(an)
+        if opts.ruler_coordinates_space == "both" then
+            a:append(string.format("image: %.1f, %.1f\\Nscreen: %i, %i",
+                pos.image.x, pos.image.y, pos.screen.x, pos.screen.y))
+        elseif opts.ruler_coordinates_space == "image" then
+            a:append(string.format("%.1f, %.1f", pos.image.x, pos.image.y))
+        elseif opts.ruler_coordinates_space == "window" then
+            a:append(string.format("%i, %i", pos.screen.x, pos.screen.y))
+        end
+    end
+    dot_info(line_start, true)
+    if distinct then
+        line_info()
+        dot_info(line_end, false)
+    end
+    if distinct and opts.ruler_show_angles ~= "no" then
+        local dist = 50
+        local pos_from_angle = function(mult, angle)
+            return {
+                x = line_start.screen.x + mult * dist * math.cos(angle),
+                y = line_start.screen.y + mult * dist * math.sin(angle)
+            }
+        end
+        local extended = {x=line_start.screen.x, y=line_start.screen.y}
+        if line_end.screen.x > line_start.screen.x then
+            extended.x = extended.x + dist
+        else
+            extended.x = extended.x - dist
+        end
+        line(line_start.screen, extended, math.max(0, opts.ruler_line_width-0.5))
+        local angle = math.atan(math.abs(line_start.image.y - line_end.image.y) / math.abs(line_start.image.x - line_end.image.x))
+        local fix_angle
+        local an
+        if line_end.image.y < line_start.image.y and line_end.image.x > line_start.image.x then
+            -- upper-right
+            an = 4
+            fix_angle = function(angle) return - angle end
+        elseif line_end.image.y < line_start.image.y then
+            -- upper-left
+            an = 6
+            fix_angle = function(angle) return math.pi + angle end
+        elseif line_end.image.x < line_start.image.x then
+            -- bottom-left
+            an = 6
+            fix_angle = function(angle) return math.pi - angle end
+        else
+            -- bottom-right
+            an = 4
+            fix_angle = function(angle) return angle end
+        end
+        -- should implement this https://math.stackexchange.com/questions/873224/calculate-control-points-of-cubic-bezier-curve-approximating-a-part-of-a-circle
+        local cp1 = pos_from_angle(1, fix_angle(angle*1/4))
+        local cp2 = pos_from_angle(1, fix_angle(angle*3/4))
+        local p2 = pos_from_angle(1, fix_angle(angle))
+        a:bezier_curve(cp1.x, cp1.y, cp2.x, cp2.y, p2.x, p2.y)
+
+        a:new_event()
+        a:append("{\\fs36}{\\bord1}")
+        local text_pos = pos_from_angle(1.1, fix_angle(angle*2/3)) -- you'd think /2 would make more sense, but *2/3  looks better
+        a:pos(text_pos.x, text_pos.y)
+        a:an(an)
+        if opts.ruler_show_angles == "both" then
+            a:append(string.format("%.2f\\N%.1f°", angle, angle / math.pi * 180))
+        elseif opts.ruler_show_angles == "degrees" then
+            a:append(string.format("%.1f°", angle / math.pi * 180))
+        elseif opts.ruler_show_angles == "radians" then
+            a:append(string.format("%.2f", angle))
+        end
+    end
+
+    ass.ruler = a.text
+    draw_ass()
+end
+
+function ruler_next()
+    if ruler_state == 0 then
+        mp.register_idle(refresh_ruler)
+        add_mouse_move_callback("ruler", function() end) -- only used to get an idle event on mouse move
+        for _,key in ipairs(opts.ruler_confirm_bindings) do
+            mp.add_forced_key_binding(key, "ruler-next-" .. key, ruler_next)
+        end
+        for _,key in ipairs(opts.ruler_exit_bindings) do
+            mp.add_forced_key_binding(key, "ruler-stop-" .. key, ruler_stop)
+        end
+        ruler_state = 1
+        if opts.ruler_set_first_point_on_begin then
+            ruler_next()
+        end
+    elseif ruler_state == 1 then
+        ruler_first_point = cursor_video_space()
+        ruler_state = 2
+    elseif ruler_state == 2 then
+        ruler_state = 3
+        ruler_second_point = cursor_video_space()
+        if opts.ruler_clear_on_second_point_set then
+            ruler_next()
+        end
+    else
+        ruler_stop()
+    end
+end
+
+function ruler_stop()
+    if ruler_state == 0 then return end
+    mp.unregister_idle(refresh_ruler)
+    for _,key in ipairs(opts.ruler_confirm_bindings) do
+        mp.remove_key_binding("ruler-next-" .. key)
+    end
+    for _,key in ipairs(opts.ruler_exit_bindings) do
+        mp.remove_key_binding("ruler-stop-" .. key)
+    end
+    remove_mouse_move_callback("ruler")
+    ruler_state = 0
+    ruler_first_point = nil
+    ruler_second_point = nil
+    ass.ruler = ""
+    draw_ass()
+end
+
 mp.add_key_binding(nil, "drag-to-pan", drag_to_pan_handler, {complex = true})
 mp.add_key_binding(nil, "pan-follows-cursor", pan_follows_cursor_handler, {complex = true})
 mp.add_key_binding(nil, "cursor-centric-zoom", cursor_centric_zoom_handler)
@@ -662,7 +939,7 @@ mp.add_key_binding(nil, "rotate-video", rotate_video)
 mp.add_key_binding(nil, "reset-pan-if-visible", reset_pan_if_visible)
 mp.add_key_binding(nil, "force-print-filename", force_print_filename)
 
-mp.add_key_binding(nil, "ruler", start_ruler)
+mp.add_key_binding(nil, "ruler", ruler_next)
 
 mp.add_key_binding(nil, "enable-status-line", enable_status_line)
 mp.add_key_binding(nil, "disable-status-line", disable_status_line)
