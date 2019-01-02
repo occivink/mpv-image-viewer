@@ -24,6 +24,8 @@ local opts = {
     ruler_show_angles="degrees",
     ruler_line_width=2,
     ruler_dots_radius=3,
+    ruler_font_size=36,
+    ruler_line_color="33",
     ruler_confirm_bindings="MBTN_LEFT,ENTER",
     ruler_exit_bindings="ESC",
     ruler_set_first_point_on_begin=false,
@@ -751,7 +753,8 @@ function refresh_ruler()
         a:pos(0,0)
         a:append("{\\bord" .. bord .. "}")
         a:append("{\\shad0}")
-        a:append("{\\3c&H000000&}")
+        local r = opts.ruler_line_color
+        a:append("{\\3c&H".. r .. r .. r .. "&}")
         a:append("{\\1a&HFF}")
         a:append("{\\2a&HFF}")
         a:append("{\\3a&H00}")
@@ -798,7 +801,7 @@ function refresh_ruler()
     local dot_info = function(pos, opposite)
         if not opts.ruler_show_coordinates then return end
         a:new_event()
-        a:append("{\\fs36}{\\bord1}")
+        a:append("{\\fs" .. opts.ruler_font_size .."}{\\bord1}")
         a:pos(pos.screen.x, pos.screen.y)
         local an
         if distinct then
@@ -868,7 +871,7 @@ function refresh_ruler()
         a:bezier_curve(cp1.x, cp1.y, cp2.x, cp2.y, p2.x, p2.y)
 
         a:new_event()
-        a:append("{\\fs36}{\\bord1}")
+        a:append("{\\fs" .. opts.ruler_font_size .."}{\\bord1}")
         local text_pos = pos_from_angle(1.1, fix_angle(angle*2/3)) -- you'd think /2 would make more sense, but *2/3  looks better
         a:pos(text_pos.x, text_pos.y)
         a:an(an)
