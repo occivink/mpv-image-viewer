@@ -36,14 +36,15 @@ The `scripts/image-viewer.lua` script offers several commands that are common in
 `force-print-filename`: print the filename, even if console output is disabled  
 `enable-status-line`, `disable-status-line`, `toggle-status-line`: show a simple status line  
 `enable-minimap`, `disable-minimap`, `toggle-minimap`: show a "minimap" that displays the position of the image relatively to the view  
+`ruler`: spawn a ruler that lets you visualize various image measurement  
 
 They don't have any default bindings, see the example `input.conf`, and in the configuration bind them.
-Some of these commands, as well as the status line can be configured via `script-opts/image_viewer.conf`.
+Some of these commands, the status line and the ruler can be configured via `script-opts/image_viewer.conf`.
 
 
 ## gallery.lua
 
-The [gallery-view](https://github.com/occivink/mpv-gallery-view) plugin greatly helps when navigating large image playlists.
+The [gallery-view](https://github.com/occivink/mpv-gallery-view) plugin helps when navigating large image playlists.
 
 ## Others
 
@@ -73,10 +74,6 @@ IFS='
 mpv --profile=silent images/* | xargs rm
 ```
 and press `p` on each image they want to delete.
-
-# TODO
-
-`input.conf` that mirror the bindings of popular image viewing software, such as `feh` or `sxiv`.
 
 # Credits
 
