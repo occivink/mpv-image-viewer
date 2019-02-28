@@ -228,6 +228,7 @@ function drag_to_pan_handler(table)
                 local pX = video_pan_origin.x + (mX - mouse_pos_origin.x) / video_dimensions.size.w
                 local pY = video_pan_origin.y + (mY - mouse_pos_origin.y) / video_dimensions.size.h
                 mp.command("no-osd set video-pan-x " .. clamp(pX, -3, 3) .. "; no-osd set video-pan-y " .. clamp(pY, -3, 3))
+                video_dimensions_stale = true
                 moved = false
             end
         end
@@ -269,6 +270,7 @@ function pan_follows_cursor_handler(table)
                 end
                 if command ~= "" then
                     mp.command(command)
+                    video_dimensions_stale = true
                 end
                 moved = false
             end
@@ -302,6 +304,7 @@ function cursor_centric_zoom_handler(amt)
     local newPanX = (video_pan_origin.x * video_dimensions.size.w + rx * diffWidth / 2) / (video_dimensions.size.w + diffWidth)
     local newPanY = (video_pan_origin.y * video_dimensions.size.h + ry * diffHeight / 2) / (video_dimensions.size.h + diffHeight)
     mp.command("no-osd set video-zoom " .. zoom_origin + zoom_inc .. "; no-osd set video-pan-x " .. clamp(newPanX, -3, 3) .. "; no-osd set video-pan-y " .. clamp(newPanY, -3, 3))
+    video_dimensions_stale = true
 end
 
 function align_border(x, y)
@@ -318,6 +321,7 @@ function align_border(x, y)
     end
     if command ~= "" then
         mp.command(command)
+        video_dimensions_stale = true
     end
 end
 
@@ -364,6 +368,7 @@ function pan_image(axis, amount, zoom_invariant, image_constrained)
         end
     end
     mp.set_property_number(prop, old_pan + amount)
+    video_dimensions_stale = true
 end
 
 function rotate_video(amt)
