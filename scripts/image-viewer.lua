@@ -1,6 +1,7 @@
 local opts = {
     pan_follows_cursor_margin = 50,
     pan_follows_cursor_move_if_full_view = false,
+    freeze_window_size = true,
 
     status_line_enabled = false,
     status_line_position = "bottom_left",
@@ -936,6 +937,20 @@ function ruler_stop()
     ruler_second_point = nil
     ass.ruler = ""
     draw_ass()
+end
+
+if opts.freeze_window_size then
+    local size_changed = false
+    mp.register_idle(function()
+        if not size_changed then return end
+        local ww, wh = mp.get_osd_size()
+        if not ww or ww <= 0 or not wh or wh <= 0 then return end
+        mp.set_property("geometry", string.format("%dx%d", ww, wh))
+        size_changed = false
+    end)
+
+    mp.observe_property("osd-width", "native", function() size_changed = true end)
+    mp.observe_property("osd-height", "native", function() size_changed = true end)
 end
 
 mp.add_key_binding(nil, "drag-to-pan", drag_to_pan_handler, {complex = true})
