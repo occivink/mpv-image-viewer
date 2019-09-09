@@ -13,18 +13,18 @@ It won't compete with `feh` or the likes when it comes to size or startup time, 
 # Configuration
 
 There are several options for making an mvi configuration.  
-* You can create an entirely separate `~/.config/mvi/` directory and use the alias `alias mvi='mpv --config-dir=$HOME/.config/mvi'` 
-* Or keep a separate profile in your mpv config and alias it like that `alias mvi=mpv --profile=image'`. 
+* Use the normal mpv config, and apply changes at runtime. You will need `detect-image.lua` and use [input sections](https://mpv.io/manual/master/#input-sections) and [profiles](https://mpv.io/manual/master/#profiles) to make this work.
+* Or create an entirely separate `~/.config/mvi/` directory and use the alias `alias mvi='mpv --config-dir=$HOME/.config/mvi'` 
 
-The first option can be cleaner, at the cost of some duplication.
+The first option is more complex, the second results in essentially two separate programs.
 
 The examples `mpv.conf` and `input.conf` in this repository are commented to highlight (un)desirable settings.
 
 # Scripts
 
-## image-viewer.lua
+## image-positioning.lua
 
-The `scripts/image-viewer.lua` script offers several commands that are common in image viewers:
+Adds several high-level commands to zoom and pan:
 
 `drag-to-pan`: pan the image with the cursor, while keeping the same part of the image under the cursor  
 `pan-follows-cursor`: pan the image in the direction of the cursor  
@@ -33,23 +33,46 @@ The `scripts/image-viewer.lua` script offers several commands that are common in
 `pan-image`: pan the image in a direction, optionally ignoring the zoom or forcing the image to stay visible  
 `rotate-video`: rotate the image in 90 degrees increment  
 `reset-pan-if-visible`: reset the pan if the entire image is visible  
-`force-print-filename`: print the filename, even if console output is disabled  
-`enable-status-line`, `disable-status-line`, `toggle-status-line`: show a simple status line  
-`enable-minimap`, `disable-minimap`, `toggle-minimap`: show a "minimap" that displays the position of the image relatively to the view  
-`ruler`: spawn a ruler that lets you visualize various image measurement  
 
-They don't have any default bindings, see the example `input.conf`, and in the configuration bind them.
-Some of these commands, the status line and the ruler can be configured via `script-opts/image_viewer.conf`.
+There are no default bindings, see [`input.conf`](input.conf) for how to bind them.
 
+## status-line.lua
 
-## gallery.lua
+Adds a status line that can show different properties in the corner of the window. By default it shows `filename [positon/total]` in the bottom left.
 
-The [gallery-view](https://github.com/occivink/mpv-gallery-view) plugin helps when navigating large image playlists.
+Can be activated with `status-line-enable`, `status-line-disable`, `status-line-toggle` and configured through [`status_line.conf`](script-opts/status_line.conf).
+
+## detect-image.lua
+
+Allows you to run specific commands when images are being displayed. Does not do anything by default, needs to be configured through [`detect_image.conf`](script-opts/detect_image.conf).
+
+For example, this makes it possible to setup bindings that are only in effect with images, like so:
+```
+command_on_first_image_loaded=enable-section image-viewer
+command_on_non_image_loaded=disable-section image-viewer
+```
+Where the 'image-viewer' bindings are specified like so [`input.conf`](input.conf#L96-L99).
+
+## minimap.lua
+
+Adds a minimap that displays the position of the image relative to the view.  
+Can be activated with `minimap-enable`, `minimap-disable`, `minimap-toggle` and configured through [`minimap.conf`](script-opts/minimap.conf).
+
+## ruler.lua
+
+Adds a `ruler` command that lets you measure positions, distances and angles in the image.
+Can be configured through [`ruler.conf`](script-opts/ruler.conf).
+
+## freeze-window.lua
+
+By default, mpv automatically resizes the window when the current file changes to fit its size. This script freezes the window so that this does not happen. 
+There is no configuration.
 
 ## Others
 
 Some other mpv scripts work well with mvi, here are a few (feel free to send a PR for others):
 
+[playlist-view](https://github.com/occivink/mpv-gallery-view): show all images in a grid view
 [zones](https://github.com/wiiaboo/mpv-scripts/blob/master/zones.lua): send different commands depending on cursor position  
 [delete-file](https://github.com/zenyd/mpv-scripts#delete-file): delete the current file  
 [mpv_crop_script](https://github.com/TheAMM/mpv_crop_script): featureful screenshot tool  
@@ -57,23 +80,7 @@ Some other mpv scripts work well with mvi, here are a few (feel free to send a P
 [crop](https://github.com/occivink/mpv-scripts#croplua): simple cropping script  
 [autoload](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua): automatically load all files in the same directory  
 [playlist-manager](https://github.com/jonniek/mpv-playlistmanager): playlist management script  
-[mpv-stats](https://github.com/Argon-/mpv-stats): show some info about the input file (integrated into mpv in 0.28+)  
-
-# Tips
-
-## Piping mpv to other applications
-
-It is possible to use mpv in shell to act as a visual filter for input files.  
-
-Simply load the "silent" profile, and call `force-print-filname` to print the name of the current file for the next program in the pipe. You should take care of using "newline" as file separator.  
-
-For example, if one wanted to delete images they could run something like this:
-```
-IFS='
-'
-mpv --profile=silent images/* | xargs rm
-```
-and press `p` on each image they want to delete.
+[blacklist-extensions](https://github.com/occivink/mpv-scripts#blacklist-extensionslua): remove files from the playlist based on their types
 
 # Credits
 
