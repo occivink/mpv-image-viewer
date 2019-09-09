@@ -41,10 +41,13 @@ function refresh()
         x = w-margin
         y = h-margin
         an = 3
-    else
+    elseif opts.position == "bottom-left" then
         x = margin
         y = h-margin
         an = 1
+    else
+        msg.error("Invalid position: " .. opts.position)
+        return
     end
     local a = assdraw:ass_new()
     a:new_event()

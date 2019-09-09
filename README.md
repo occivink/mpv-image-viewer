@@ -34,7 +34,7 @@ Adds several high-level commands to zoom and pan:
 `rotate-video`: rotate the image in 90 degrees increment  
 `reset-pan-if-visible`: reset the pan if the entire image is visible  
 
-There are no default bindings, see [`input.conf`](input.conf) for how to bind them.
+There are no default bindings, see [`input.conf`](input.conf#L19-L67) for how to bind them.
 
 ## status-line.lua
 
