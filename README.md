@@ -72,13 +72,13 @@ There is no configuration.
 
 Some other mpv scripts work well with mvi, here are a few (feel free to send a PR for others):
 
-[playlist-view](https://github.com/occivink/mpv-gallery-view): show all images in a grid view
+[playlist-view](https://github.com/occivink/mpv-gallery-view): show all images in a grid view  
 [zones](https://github.com/wiiaboo/mpv-scripts/blob/master/zones.lua): send different commands depending on cursor position  
+[autoload](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua): automatically load all files in the same directory  
 [delete-file](https://github.com/zenyd/mpv-scripts#delete-file): delete the current file  
 [mpv_crop_script](https://github.com/TheAMM/mpv_crop_script): featureful screenshot tool  
-[auto-profiles](https://github.com/wm4/mpv-scripts/blob/master/auto-profiles.lua): apply profiles conditionally. Can be used to lower settings with huge images  
+[auto-profiles](https://github.com/wiiaboo/mpv-scripts/blob/master/auto-profiles.lua): apply profiles conditionally. Can be used to lower settings with huge images  
 [crop](https://github.com/occivink/mpv-scripts#croplua): simple cropping script  
-[autoload](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua): automatically load all files in the same directory  
 [playlist-manager](https://github.com/jonniek/mpv-playlistmanager): playlist management script  
 [blacklist-extensions](https://github.com/occivink/mpv-scripts#blacklist-extensionslua): remove files from the playlist based on their types
 
