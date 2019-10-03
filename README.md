@@ -74,7 +74,7 @@ Some other mpv scripts work well with mvi, here are a few (feel free to send a P
 
 [playlist-view](https://github.com/occivink/mpv-gallery-view): show all images in a grid view  
 [zones](https://github.com/wiiaboo/mpv-scripts/blob/master/zones.lua): send different commands depending on cursor position  
-[autoload](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua): automatically load all files in the same directory  
+[autoload](https://github.com/mpv-player/mpv/blob/master/TOOLS/lua/autoload.lua): automatically load all files in the same directory. Set `videos=no` and `audio=no` in `script-opts/autoload.conf` to only autoload images.  
 [delete-file](https://github.com/zenyd/mpv-scripts#delete-file): delete the current file  
 [mpv_crop_script](https://github.com/TheAMM/mpv_crop_script): featureful screenshot tool  
 [auto-profiles](https://github.com/wiiaboo/mpv-scripts/blob/master/auto-profiles.lua): apply profiles conditionally. Can be used to lower settings with huge images  
