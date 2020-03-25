@@ -121,6 +121,8 @@ function get_video_dimensions()
     _video_dimensions.size[2] = _video_dimensions.bottom_right[2] - _video_dimensions.top_left[2]
     _video_dimensions.ratios[1] = _video_dimensions.size[1] / w
     _video_dimensions.ratios[2] = _video_dimensions.size[2] / h
+
+    if not (_video_dimensions.size[1] > 0 and _video_dimensions.size[2] > 0) then return nil end
     video_dimensions_stale = false
     return _video_dimensions
 end
@@ -156,6 +158,7 @@ function refresh_minimap()
     if dim.timestamp == old_timestamp then return end
     old_timestamp = dim.timestamp
     local ww, wh = mp.get_osd_size()
+    if not (ww > 0 and wh > 0) then return end
     if opts.hide_when_full_image_in_view then
         if dim.top_left[1] >= 0 and
            dim.top_left[2] >= 0 and
@@ -185,8 +188,8 @@ function refresh_minimap()
         a:append("{\\3a&HFF}")
         a:append("{\\4a&HFF}")
         a:append("{\\1a&H" .. opacity .. "}")
-        w=w * 0.5
-        h=h * 0.5
+        w = w * 0.5
+        h = h * 0.5
         a:draw_start()
         local rounded = {true,true,true,true} -- tl, tr, br, bl
         local x0,y0,x1,y1 = x-w, y-h, x+w, y+h
