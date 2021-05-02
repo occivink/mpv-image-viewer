@@ -1,8 +1,11 @@
 local opts = {
     enabled = true,
-    position = "bottom-left",
     size = 36,
-    text = "${filename} [${playlist-pos-1}/${playlist-count}]",
+    margin = 10,
+    text_top_left = "",
+    text_top_right = "",
+    text_bottom_left = "${filename} [${playlist-pos-1}/${playlist-count}]",
+    text_bottom_right = "[${dwidth}x${dheight}]",
 }
 (require 'mp.options').read_options(opts)
 
@@ -19,42 +22,27 @@ end
 function refresh()
     if not stale then return end
     stale = false
-    local expanded = mp.command_native({ "expand-text", opts.text})
-    if not expanded then
-        msg.error("Error expanding status-line")
-        draw_ass("")
-        return
-    end
-    msg.verbose("Status-line changed to: " .. expanded)
-    local w,h = mp.get_osd_size()
-    local an, x, y
-    local margin = 10
-    if opts.position == "top-left" then
-        x = margin
-        y = margin
-        an = 7
-    elseif opts.position == "top-right" then
-        x = w-margin
-        y = margin
-        an = 9
-    elseif opts.position == "bottom-right" then
-        x = w-margin
-        y = h-margin
-        an = 3
-    elseif opts.position == "bottom-left" then
-        x = margin
-        y = h-margin
-        an = 1
-    else
-        msg.error("Invalid position: " .. opts.position)
-        return
-    end
     local a = assdraw:ass_new()
-    a:new_event()
-    a:an(an)
-    a:pos(x,y)
-    a:append("{\\fs".. opts.size.. "}{\\bord1.0}")
-    a:append(expanded)
+    local draw_text = function(text, an, x, y)
+        if text == "" then return end
+        local expanded = mp.command_native({ "expand-text", text})
+        if not expanded then
+            msg.error("Error expanding status-line")
+            return
+        end
+        msg.verbose("Status-line changed to: " .. expanded)
+        a:new_event()
+        a:an(an)
+        a:pos(x,y)
+        a:append("{\\fs".. opts.size.. "}{\\bord1.0}")
+        a:append(expanded)
+    end
+    local w,h = mp.get_osd_size()
+    local m = opts.margin
+    draw_text(opts.text_top_left, 7, m, m)
+    draw_text(opts.text_top_right, 9, w-m, m)
+    draw_text(opts.text_bottom_left, 1, m, h-m)
+    draw_text(opts.text_bottom_right, 3, w-m, h-m)
     draw_ass(a.text)
 end
 
@@ -68,12 +56,19 @@ function enable()
     if active then return end
     active = true
     local start = 0
-    while true do
-        local s, e, cap = string.find(opts.text, "%${[?!]?([%l%d-/]*)", start)
-        if not s then break end
-        msg.verbose("Observing property " .. cap)
-        mp.observe_property(cap, nil, mark_stale)
-        start = e
+    for _, str in ipairs({
+        opts.text_top_left,
+        opts.text_top_right,
+        opts.text_bottom_left,
+        opts.text_bottom_right,
+    }) do
+        while true do
+            local s, e, cap = string.find(str, "%${[?!]?([%l%d-/]*)", start)
+            if not s then break end
+            msg.verbose("Observing property " .. cap)
+            mp.observe_property(cap, nil, mark_stale)
+            start = e
+        end
     end
     mp.observe_property("osd-width", nil, mark_stale)
     mp.observe_property("osd-height", nil, mark_stale)
