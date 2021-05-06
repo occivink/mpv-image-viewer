@@ -125,22 +125,22 @@ function drag_to_pan_handler(table)
         cleanup = nil
     end
     if table["event"] == "down" then
-        local video_dimensions = get_video_dimensions()
-        if not video_dimensions then return end
-        local window_w, window_h = mp.get_osd_size()
+        local dim = mp.get_property_native("osd-dimensions")
+        if not dim then return end
         local mouse_pos_origin, video_pan_origin = {}, {}
         local moved = false
         mouse_pos_origin[1], mouse_pos_origin[2] = mp.get_mouse_pos()
         video_pan_origin[1] = mp.get_property_number("video-pan-x")
         video_pan_origin[2] = mp.get_property_number("video-pan-y")
+        local video_size = { dim.w - dim.ml - dim.mr, dim.h - dim.mt - dim.mb }
         local margin = opts.drag_to_pan_margin
         local move_up = true
         local move_lateral = true
         if not opts.drag_to_pan_move_if_full_view then
-            if video_dimensions.size[1] <= window_w then
+            if dim.ml >= 0 and dim.mr >= 0 then
                 move_lateral = false
             end
-            if video_dimensions.size[2] <= window_h then
+            if dim.mt >= 0 and dim.mb >= 0 then
                 move_up = false
             end
         end
@@ -151,27 +151,27 @@ function drag_to_pan_handler(table)
                 local pX = video_pan_origin[1]
                 local pY = video_pan_origin[2]
                 if move_lateral then
-                    pX = video_pan_origin[1] + (mX - mouse_pos_origin[1]) / video_dimensions.size[1]
-                    if video_dimensions.size[1] + 2 * margin > window_w then
+                    pX = video_pan_origin[1] + (mX - mouse_pos_origin[1]) / video_size[1]
+                    if 2 * margin > dim.ml + dim.mr then
                         pX = clamp(pX,
-                            (-margin + window_w / 2) / video_dimensions.size[1] - 0.5,
-                            (margin - window_w / 2) / video_dimensions.size[1] + 0.5)
+                            (-margin + dim.w / 2) / video_size[1] - 0.5,
+                            (margin - dim.w / 2) / video_size[1] + 0.5)
                     else
                         pX = clamp(pX,
-                            (margin - window_w / 2) / video_dimensions.size[1] + 0.5,
-                            (-margin + window_w / 2) / video_dimensions.size[1] - 0.5)
+                            (margin - dim.w / 2) / video_size[1] + 0.5,
+                            (-margin + dim.w / 2) / video_size[1] - 0.5)
                     end
                 end
                 if move_up then
-                    pY = video_pan_origin[2] + (mY - mouse_pos_origin[2]) / video_dimensions.size[2]
-                    if video_dimensions.size[2] + 2 * margin > window_h then
+                    pY = video_pan_origin[2] + (mY - mouse_pos_origin[2]) / video_size[2]
+                    if 2 * margin > dim.mt + dim.mb then
                         pY = clamp(pY,
-                            (-margin + window_h / 2) / video_dimensions.size[2] - 0.5,
-                            (margin - window_h / 2) / video_dimensions.size[2] + 0.5)
+                            (-margin + dim.h / 2) / video_size[2] - 0.5,
+                            (margin - dim.h / 2) / video_size[2] + 0.5)
                     else
                         pY = clamp(pY,
-                            (margin - window_h / 2) / video_dimensions.size[2] + 0.5,
-                            (-margin + window_h / 2) / video_dimensions.size[2] - 0.5)
+                            (margin - dim.h / 2) / video_size[2] + 0.5,
+                            (-margin + dim.h / 2) / video_size[2] - 0.5)
                     end
                 end
                 mp.command("no-osd set video-pan-x " .. clamp(pX, -3, 3) .. "; no-osd set video-pan-y " .. clamp(pY, -3, 3))
