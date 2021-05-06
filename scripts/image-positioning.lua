@@ -294,16 +294,16 @@ function cursor_centric_zoom_handler(amt)
 end
 
 function align_border(x, y)
-    local video_dimensions = get_video_dimensions()
-    if not video_dimensions then return end
-    local window_w, window_h = mp.get_osd_size()
+    local dim = mp.get_property_native("osd-dimensions")
+    if not dim then return end
+    local video_size = { dim.w - dim.ml - dim.mr, dim.h - dim.mt - dim.mb }
     local x, y = tonumber(x), tonumber(y)
     local command = ""
     if x then
-        command = command .. "no-osd set video-pan-x " .. clamp(x * (video_dimensions.size[1] - window_w) / (2 * video_dimensions.size[1]), -3, 3) .. ";"
+        command = command .. "no-osd set video-pan-x " .. clamp(- x * (dim.ml + dim.mr) / (2 * video_size[1]), -3, 3) .. ";"
     end
     if y then
-        command = command .. "no-osd set video-pan-y " .. clamp(y * (video_dimensions.size[2] - window_h) / (2 * video_dimensions.size[2]), -3, 3) .. ";"
+        command = command .. "no-osd set video-pan-y " .. clamp(- y * (dim.mt + dim.mb) / (2 * video_size[2]), -3, 3) .. ";"
     end
     if command ~= "" then
         mp.command(command)
