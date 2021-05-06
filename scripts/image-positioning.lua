@@ -1,9 +1,8 @@
 local opts = {
-    pan_follows_cursor_margin = 50,
-    pan_follows_cursor_move_if_full_view = false,
-
     drag_to_pan_margin = 50,
-    drag_to_pan_move_if_full_view = false,
+    drag_to_pan_move_if_full_view=false,
+
+    pan_follows_cursor_margin = 50,
 
     cursor_centric_zoom_margin = 50,
     cursor_centric_zoom_auto_center = true,
@@ -193,24 +192,24 @@ function pan_follows_cursor_handler(table)
         cleanup = nil
     end
     if table["event"] == "down" then
-        local video_dimensions = get_video_dimensions()
-        if not video_dimensions then return end
-        local window_w, window_h = mp.get_osd_size()
+        local dim = mp.get_property_native("osd-dimensions")
+        if not dim then return end
+        local video_size = { dim.w - dim.ml - dim.mr, dim.h - dim.mt - dim.mb }
         local moved = true
         local idle = function()
             if moved then
                 local mX, mY = mp.get_mouse_pos()
-                local x = math.min(1, math.max(- 2 * mX / window_w + 1, -1))
-                local y = math.min(1, math.max(- 2 * mY / window_h + 1, -1))
+                local x = math.min(1, math.max(- 2 * mX / dim.w + 1, -1))
+                local y = math.min(1, math.max(- 2 * mY / dim.h + 1, -1))
                 local command = ""
-                local margin, move_full = opts.pan_follows_cursor_margin, opts.pan_follows_cursor_move_if_full_view
-                if (not move_full and window_w < video_dimensions.size[1]) then
-                    command = command .. "no-osd set video-pan-x " .. clamp(x * (video_dimensions.size[1] - window_w + 2 * margin) / (2 * video_dimensions.size[1]), -3, 3) .. ";"
+                local margin = opts.pan_follows_cursor_margin
+                if dim.ml + dim.mr < 0 then
+                    command = command .. "no-osd set video-pan-x " .. clamp(x * (2 * margin - dim.ml - dim.mr) / (2 * video_size[1]), -3, 3) .. ";"
                 elseif mp.get_property_number("video-pan-x") ~= 0 then
                     command = command .. "no-osd set video-pan-x " .. "0;"
                 end
-                if (not move_full and window_h < video_dimensions.size[2]) then
-                    command = command .. "no-osd set video-pan-y " .. clamp(y * (video_dimensions.size[2] - window_h + 2 * margin) / (2 * video_dimensions.size[2]), -3, 3) .. ";"
+                if dim.mt + dim.mb < 0 then
+                    command = command .. "no-osd set video-pan-y " .. clamp(y * (2 * margin - dim.mt - dim.mb) / (2 * video_size[2]), -3, 3) .. ";"
                 elseif mp.get_property_number("video-pan-y") ~= 0 then
                     command = command .. "no-osd set video-pan-y " .. "0;"
                 end
