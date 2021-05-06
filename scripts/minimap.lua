@@ -27,148 +27,30 @@ local assdraw = require 'mp.assdraw'
 
 local video_dimensions_stale = true
 
-function get_video_dimensions()
-    -- this function is very much ripped from video/out/aspect.c in mpv's source
-    if not video_dimensions_stale then return _video_dimensions end
-    local video_params = mp.get_property_native("video-out-params")
-    if not video_params then
-        _video_dimensions = nil
-        return nil
-    end
-    if not _timestamp then _timestamp = 0 end
-    _timestamp = _timestamp + 1
-    _video_dimensions = {
-        timestamp = _timestamp,
-        top_left = { 0, 0 },
-        bottom_right = { 0, 0 },
-        size = { 0, 0 },
-        ratios = { 0, 0 }, -- by how much the original video got scaled
-    }
-    local keep_aspect = mp.get_property_bool("keepaspect")
-    local w = video_params["w"]
-    local h = video_params["h"]
-    local dw = video_params["dw"]
-    local dh = video_params["dh"]
-    if mp.get_property_number("video-rotate") % 180 == 90 then
-        w, h = h,w
-        dw, dh = dh, dw
-    end
-    local window_w, window_h = mp.get_osd_size()
-
-    if keep_aspect then
-        local unscaled = mp.get_property_native("video-unscaled")
-        local panscan = mp.get_property_number("panscan")
-
-        local fwidth = window_w
-        local fheight = math.floor(window_w / dw * dh)
-        if fheight > window_h or fheight < h then
-            local tmpw = math.floor(window_h / dh * dw)
-            if tmpw <= window_w then
-                fheight = window_h
-                fwidth = tmpw
-            end
-        end
-        local vo_panscan_area = window_h - fheight
-        local f_w = fwidth / fheight
-        local f_h = 1
-        if vo_panscan_area == 0 then
-            vo_panscan_area = window_h - fwidth
-            f_w = 1
-            f_h = fheight / fwidth
-        end
-        if unscaled or unscaled == "downscale-big" then
-            vo_panscan_area = 0
-            if unscaled or (dw <= window_w and dh <= window_h) then
-                fwidth = dw
-                fheight = dh
-            end
-        end
-
-        local scaled_width = fwidth + math.floor(vo_panscan_area * panscan * f_w)
-        local scaled_height = fheight + math.floor(vo_panscan_area * panscan * f_h)
-
-        local split_scaling = function (dst_size, scaled_src_size, zoom, align, pan)
-            scaled_src_size = math.floor(scaled_src_size * 2 ^ zoom)
-            align = (align + 1) / 2
-            local dst_start = math.floor((dst_size - scaled_src_size) * align + pan * scaled_src_size)
-            if dst_start < 0 then
-                --account for C int cast truncating as opposed to flooring
-                dst_start = dst_start + 1
-            end
-            local dst_end = dst_start + scaled_src_size;
-            if dst_start >= dst_end then
-                dst_start = 0
-                dst_end = 1
-            end
-            return dst_start, dst_end
-        end
-        local zoom = mp.get_property_number("video-zoom")
-
-        local align_x = mp.get_property_number("video-align-x")
-        local pan_x = mp.get_property_number("video-pan-x")
-        _video_dimensions.top_left[1], _video_dimensions.bottom_right[1] = split_scaling(window_w, scaled_width, zoom, align_x, pan_x)
-
-        local align_y = mp.get_property_number("video-align-y")
-        local pan_y = mp.get_property_number("video-pan-y")
-        _video_dimensions.top_left[2], _video_dimensions.bottom_right[2] = split_scaling(window_h,  scaled_height, zoom, align_y, pan_y)
-    else
-        _video_dimensions.top_left[1] = 0
-        _video_dimensions.bottom_right[1] = window_w
-        _video_dimensions.top_left[2] = 0
-        _video_dimensions.bottom_right[2] = window_h
-    end
-    _video_dimensions.size[1] = _video_dimensions.bottom_right[1] - _video_dimensions.top_left[1]
-    _video_dimensions.size[2] = _video_dimensions.bottom_right[2] - _video_dimensions.top_left[2]
-    _video_dimensions.ratios[1] = _video_dimensions.size[1] / w
-    _video_dimensions.ratios[2] = _video_dimensions.size[2] / h
-
-    if not (_video_dimensions.size[1] > 0 and _video_dimensions.size[2] > 0) then return nil end
-    video_dimensions_stale = false
-    return _video_dimensions
-end
-
-for _, p in ipairs({
-    "keepaspect",
-    "video-out-params",
-    "video-unscaled",
-    "panscan",
-    "video-zoom",
-    "video-align-x",
-    "video-pan-x",
-    "video-align-y",
-    "video-pan-y",
-    "osd-width",
-    "osd-height",
-}) do
-    mp.observe_property(p, nil, function() video_dimensions_stale = true end)
-end
 function draw_ass(ass)
     local ww, wh = mp.get_osd_size()
     mp.set_osd_ass(ww, wh, ass)
 end
 
-local old_timestamp = -1
-
 function refresh_minimap()
-    local dim = get_video_dimensions()
+    if not video_dimensions_stale then return end
+    video_dimensions_stale = false
+
+    local dim = mp.get_property_native("osd-dimensions")
     if not dim then
         draw_ass("")
         return
     end
-    if dim.timestamp == old_timestamp then return end
-    old_timestamp = dim.timestamp
-    local ww, wh = mp.get_osd_size()
+    local ww, wh = dim.w, dim.h
+
     if not (ww > 0 and wh > 0) then return end
     if opts.hide_when_full_image_in_view then
-        if dim.top_left[1] >= 0 and
-           dim.top_left[2] >= 0 and
-           dim.bottom_right[1] <= ww and
-           dim.bottom_right[2] <= wh
-        then
+        if dim.mt >= 0 and dim.mb >= 0 and dim.ml >= 0 and dim.mr >= 0 then
             draw_ass("")
             return
         end
     end
+
     local center = {
         opts.center[1] * 0.01 * ww,
         opts.center[2] * 0.01 * wh
@@ -248,10 +130,10 @@ function refresh_minimap()
         a:draw_stop()
     end
     local image = function()
-        draw((dim.top_left[1] + dim.size[1]/2 - ww/2) / opts.scale,
-             (dim.top_left[2] + dim.size[2]/2 - wh/2) / opts.scale,
-             dim.size[1] / opts.scale,
-             dim.size[2] / opts.scale,
+        draw((dim.ml/2 - dim.mr/2) / opts.scale,
+             (dim.mt/2 - dim.mb/2) / opts.scale,
+             (ww - dim.ml - dim.mr) / opts.scale,
+             (wh - dim.mt - dim.mb) / opts.scale,
              opts.image_opacity,
              opts.image_color)
     end
@@ -278,14 +160,16 @@ local active = false
 function enable_minimap()
     if active then return end
     active = true
+    video_dimensions_stale = true
+    mp.observe_property("osd-dimensions", nil, function() video_dimensions_stale = true end)
     mp.register_idle(refresh_minimap)
 end
 
 function disable_minimap()
     if not active then return end
     active = false
-    ass.minimap = a.text
-    draw_ass()
+    draw_ass("")
+    mp.unobserve_property("osd-dimensions")
     mp.unregister_idle(refresh_minimap)
 end
 
