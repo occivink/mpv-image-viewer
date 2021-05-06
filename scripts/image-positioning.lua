@@ -318,38 +318,21 @@ function pan_image(axis, amount, zoom_invariant, image_constrained)
     end
     local prop = "video-pan-" .. axis
     local old_pan = mp.get_property_number(prop)
-    axis = (axis == "x") and 1 or 2
     if image_constrained == "yes" then
-        local video_dimensions = get_video_dimensions()
-        if not video_dimensions then return end
-        local window = {}
-        window[1], window[2] = mp.get_osd_size()
-        local pixels_moved = amount * video_dimensions.size[axis]
-        -- should somehow refactor this
-        if pixels_moved > 0 then
-            if window[axis] > video_dimensions.size[axis] then
-                if video_dimensions.bottom_right[axis] >= window[axis] then return end
-                if video_dimensions.bottom_right[axis] + pixels_moved > window[axis] then
-                    amount = (window[axis] - video_dimensions.bottom_right[axis]) / video_dimensions.size[axis]
-                end
-            else
-                if video_dimensions.top_left[axis] >= 0 then return end
-                if video_dimensions.top_left[axis] + pixels_moved > 0 then
-                    amount = (0 - video_dimensions.top_left[axis]) / video_dimensions.size[axis]
-                end
-            end
-        else
-            if window[axis] > video_dimensions.size[axis] then
-                if video_dimensions.top_left[axis] <= 0 then return end
-                if video_dimensions.top_left[axis] + pixels_moved < 0 then
-                    amount = (0 - video_dimensions.top_left[axis]) / video_dimensions.size[axis]
-                end
-            else
-                if video_dimensions.bottom_right[axis] <= window[axis] then return end
-                if video_dimensions.bottom_right[axis] + pixels_moved < window[axis] then
-                    amount = (window[axis] - video_dimensions.bottom_right[axis]) / video_dimensions.size[axis]
-                end
-            end
+        local dim = mp.get_property_native("osd-dimensions")
+        if not dim then return end
+        local margin =
+            (axis == "x" and amount > 0) and dim.ml
+            or (axis == "x" and amount < 0) and dim.mr
+            or (amount > 0) and dim.mt
+            or (amount < 0) and dim.mb
+        local vid_size = (axis == "x") and (dim.w - dim.ml - dim.mr) or (dim.h - dim.mt - dim.mb)
+        local pixels_moved = math.abs(amount) * vid_size
+        -- the margin is already visible, no point going further
+        if margin >= 0 then
+            return
+        elseif margin + pixels_moved > 0 then
+            amount = -(math.abs(amount) / amount) * margin / vid_size
         end
     end
     mp.set_property_number(prop, old_pan + amount)
