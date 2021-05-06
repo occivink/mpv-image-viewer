@@ -232,32 +232,32 @@ end
 function cursor_centric_zoom_handler(amt)
     local zoom_inc = tonumber(amt)
     if not zoom_inc or zoom_inc == 0 then return end
-    local video_dimensions = get_video_dimensions()
-    if not video_dimensions then return end
+    local dim = mp.get_property_native("osd-dimensions")
+    if not dim then return end
 
     local margin = opts.cursor_centric_zoom_margin
 
-    local window_w, window_h = mp.get_osd_size()
+    local video_size = { dim.w - dim.ml - dim.mr, dim.h - dim.mt - dim.mb }
 
     -- the size in pixels of the (in|de)crement
-    local diff_width  = (2 ^ zoom_inc - 1) * video_dimensions.size[1]
-    local diff_height = (2 ^ zoom_inc - 1) * video_dimensions.size[2]
+    local diff_width  = (2 ^ zoom_inc - 1) * video_size[1]
+    local diff_height = (2 ^ zoom_inc - 1) * video_size[2]
     if not opts.cursor_centric_zoom_dezoom_if_full_view and
         zoom_inc < 0 and
-        video_dimensions.size[1] + diff_width + 2 * margin <= window_w and
-        video_dimensions.size[2] + diff_height + 2 * margin <= window_h
+        video_size[1] + diff_width + 2 * margin <= dim.w and
+        video_size[2] + diff_height + 2 * margin <= dim.h
     then
         -- the zoom decrement is too much, reduce it such that the full image is visible, no more, no less
         -- in addition, this should take care of trying too zoom out while everything is already visible
-        local new_zoom_inc_x = math.log((window_w - 2 * margin) / video_dimensions.size[1]) / math.log(2)
-        local new_zoom_inc_y = math.log((window_h - 2 * margin) / video_dimensions.size[2]) / math.log(2)
+        local new_zoom_inc_x = math.log((dim.w - 2 * margin) / video_size[1]) / math.log(2)
+        local new_zoom_inc_y = math.log((dim.h - 2 * margin) / video_size[2]) / math.log(2)
         local new_zoom_inc = math.min(0, math.min(new_zoom_inc_x, new_zoom_inc_y))
         zoom_inc = new_zoom_inc
-        diff_width  = (2 ^ zoom_inc - 1) * video_dimensions.size[1]
-        diff_height = (2 ^ zoom_inc - 1) * video_dimensions.size[2]
+        diff_width  = (2 ^ zoom_inc - 1) * video_size[1]
+        diff_height = (2 ^ zoom_inc - 1) * video_size[2]
     end
-    local new_width = video_dimensions.size[1] + diff_width
-    local new_height = video_dimensions.size[2] + diff_height
+    local new_width = video_size[1] + diff_width
+    local new_height = video_size[2] + diff_height
 
     local mouse_pos_origin = {}
     mouse_pos_origin[1], mouse_pos_origin[2] = mp.get_mouse_pos()
@@ -267,25 +267,25 @@ function cursor_centric_zoom_handler(amt)
     -- if image can be fully visible (in either direction), set pan to 0
     -- if border would show on either side, then prefer adjusting the pan even if not cursor-centric
     local auto_c = opts.cursor_centric_zoom_auto_center
-    if auto_c and video_dimensions.size[1] + diff_width + 2 * margin <= window_w then
+    if auto_c and video_size[1] + diff_width + 2 * margin <= dim.w then
         new_pan_x = 0
     else
         local pan_x = mp.get_property("video-pan-x")
-        local rx = (video_dimensions.top_left[1] + video_dimensions.size[1] / 2 - mouse_pos_origin[1]) / (video_dimensions.size[1] / 2)
-        new_pan_x = (pan_x * video_dimensions.size[1] + rx * diff_width / 2) / new_width
+        local rx = (dim.ml + video_size[1] / 2 - mouse_pos_origin[1]) / (video_size[1] / 2)
+        new_pan_x = (pan_x * video_size[1] + rx * diff_width / 2) / new_width
         if auto_c then
-            new_pan_x = clamp(new_pan_x, (window_w - 2 * margin) / (2 * new_width) - 0.5, - (window_w - 2 * margin) / (2 * new_width) + 0.5)
+            new_pan_x = clamp(new_pan_x, (dim.w - 2 * margin) / (2 * new_width) - 0.5, - (dim.w - 2 * margin) / (2 * new_width) + 0.5)
         end
     end
 
-    if auto_c and video_dimensions.size[2] + diff_height + 2 * margin <= window_h then
+    if auto_c and video_size[2] + diff_height + 2 * margin <= dim.h then
         new_pan_y = 0
     else
         local pan_y = mp.get_property("video-pan-y")
-        local ry = (video_dimensions.top_left[2] + video_dimensions.size[2] / 2 - mouse_pos_origin[2]) / (video_dimensions.size[2] / 2)
-        new_pan_y = (pan_y * video_dimensions.size[2] + ry * diff_height / 2) / new_height
+        local ry = (dim.mt + video_size[2] / 2 - mouse_pos_origin[2]) / (video_size[2] / 2)
+        new_pan_y = (pan_y * video_size[2] + ry * diff_height / 2) / new_height
         if auto_c then
-            new_pan_y = clamp(new_pan_y, (window_h - 2 * margin) / (2 * new_height) - 0.5, - (window_h - 2 * margin) / (2 * new_height) + 0.5)
+            new_pan_y = clamp(new_pan_y, (dim.h - 2 * margin) / (2 * new_height) - 0.5, - (dim.h - 2 * margin) / (2 * new_height) + 0.5)
         end
     end
 
