@@ -345,14 +345,13 @@ function rotate_video(amt)
 end
 
 function reset_pan_if_visible()
-    local video_dimensions = get_video_dimensions()
-    if not video_dimensions then return end
-    local window_w, window_h = mp.get_osd_size()
+    local dim = mp.get_property_native("osd-dimensions")
+    if not dim then return end
     local command = ""
-    if (window_w >= video_dimensions.size[1]) then
+    if (dim.ml + dim.mr >= 0) then
         command = command .. "no-osd set video-pan-x 0" .. ";"
     end
-    if (window_h >= video_dimensions.size[2]) then
+    if (dim.mt + dim.mb >= 0) then
         command = command .. "no-osd set video-pan-y 0" .. ";"
     end
     if command ~= "" then
