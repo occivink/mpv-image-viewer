@@ -27,173 +27,68 @@ opts.exit_bindings=split(opts.exit_bindings)
 local msg = require 'mp.msg'
 local assdraw = require 'mp.assdraw'
 
-local video_dimensions_stale = true
-
-function get_video_dimensions()
-    -- this function is very much ripped from video/out/aspect.c in mpv's source
-    if not video_dimensions_stale then return _video_dimensions end
-    local video_params = mp.get_property_native("video-out-params")
-    if not video_params then
-        _video_dimensions = nil
-        return nil
-    end
-    if not _timestamp then _timestamp = 0 end
-    _timestamp = _timestamp + 1
-    _video_dimensions = {
-        timestamp = _timestamp,
-        top_left = { 0, 0 },
-        bottom_right = { 0, 0 },
-        size = { 0, 0 },
-        ratios = { 0, 0 }, -- by how much the original video got scaled
-    }
-    local keep_aspect = mp.get_property_bool("keepaspect")
-    local w = video_params["w"]
-    local h = video_params["h"]
-    local dw = video_params["dw"]
-    local dh = video_params["dh"]
-    if mp.get_property_number("video-rotate") % 180 == 90 then
-        w, h = h,w
-        dw, dh = dh, dw
-    end
-    local window_w, window_h = mp.get_osd_size()
-
-    if keep_aspect then
-        local unscaled = mp.get_property_native("video-unscaled")
-        local panscan = mp.get_property_number("panscan")
-
-        local fwidth = window_w
-        local fheight = math.floor(window_w / dw * dh)
-        if fheight > window_h or fheight < h then
-            local tmpw = math.floor(window_h / dh * dw)
-            if tmpw <= window_w then
-                fheight = window_h
-                fwidth = tmpw
-            end
-        end
-        local vo_panscan_area = window_h - fheight
-        local f_w = fwidth / fheight
-        local f_h = 1
-        if vo_panscan_area == 0 then
-            vo_panscan_area = window_h - fwidth
-            f_w = 1
-            f_h = fheight / fwidth
-        end
-        if unscaled or unscaled == "downscale-big" then
-            vo_panscan_area = 0
-            if unscaled or (dw <= window_w and dh <= window_h) then
-                fwidth = dw
-                fheight = dh
-            end
-        end
-
-        local scaled_width = fwidth + math.floor(vo_panscan_area * panscan * f_w)
-        local scaled_height = fheight + math.floor(vo_panscan_area * panscan * f_h)
-
-        local split_scaling = function (dst_size, scaled_src_size, zoom, align, pan)
-            scaled_src_size = math.floor(scaled_src_size * 2 ^ zoom)
-            align = (align + 1) / 2
-            local dst_start = math.floor((dst_size - scaled_src_size) * align + pan * scaled_src_size)
-            if dst_start < 0 then
-                --account for C int cast truncating as opposed to flooring
-                dst_start = dst_start + 1
-            end
-            local dst_end = dst_start + scaled_src_size;
-            if dst_start >= dst_end then
-                dst_start = 0
-                dst_end = 1
-            end
-            return dst_start, dst_end
-        end
-        local zoom = mp.get_property_number("video-zoom")
-
-        local align_x = mp.get_property_number("video-align-x")
-        local pan_x = mp.get_property_number("video-pan-x")
-        _video_dimensions.top_left[1], _video_dimensions.bottom_right[1] = split_scaling(window_w, scaled_width, zoom, align_x, pan_x)
-
-        local align_y = mp.get_property_number("video-align-y")
-        local pan_y = mp.get_property_number("video-pan-y")
-        _video_dimensions.top_left[2], _video_dimensions.bottom_right[2] = split_scaling(window_h,  scaled_height, zoom, align_y, pan_y)
-    else
-        _video_dimensions.top_left[1] = 0
-        _video_dimensions.bottom_right[1] = window_w
-        _video_dimensions.top_left[2] = 0
-        _video_dimensions.bottom_right[2] = window_h
-    end
-    _video_dimensions.size[1] = _video_dimensions.bottom_right[1] - _video_dimensions.top_left[1]
-    _video_dimensions.size[2] = _video_dimensions.bottom_right[2] - _video_dimensions.top_left[2]
-    _video_dimensions.ratios[1] = _video_dimensions.size[1] / w
-    _video_dimensions.ratios[2] = _video_dimensions.size[2] / h
-    video_dimensions_stale = false
-    return _video_dimensions
-end
-
-for _, p in ipairs({
-    "keepaspect",
-    "video-out-params",
-    "video-unscaled",
-    "panscan",
-    "video-zoom",
-    "video-align-x",
-    "video-pan-x",
-    "video-align-y",
-    "video-pan-y",
-    "osd-width",
-    "osd-height",
-}) do
-    mp.observe_property(p, nil, function() video_dimensions_stale = true end)
-end
+local video_dimensions_stale = false
 
 local state = 0 -- {0,1,2,3} = {inactive,setting first point,setting second point,done}
-local first_point = nil -- in video space coordinates
-local second_point = nil -- in video space coordinates
+local first_point = nil -- in normalized video space coordinates
+local second_point = nil -- in normalized video space coordinates
 
 function draw_ass(ass)
     local ww, wh = mp.get_osd_size()
     mp.set_osd_ass(ww, wh, ass)
 end
 
-function cursor_video_space()
-    local dim = get_video_dimensions()
-    if not dim then return nil end
+
+function cursor_video_space_normalized(dim)
     local mx, my = mp.get_mouse_pos()
     local ret = {}
-    ret[1] = (mx - dim.top_left[1]) / dim.ratios[1]
-    ret[2] = (my - dim.top_left[2]) / dim.ratios[2]
-    return ret
-end
-
-function video_space_to_screen(point)
-    local dim = get_video_dimensions()
-    if not dim then return nil end
-    local ret = {}
-    ret[1] = point[1] * dim.ratios[1] + dim.top_left[1]
-    ret[2] = point[2] * dim.ratios[2] + dim.top_left[2]
+    ret[1] = (mx - dim.ml) / (dim.w - dim.ml - dim.mr)
+    ret[2] = (my - dim.mt) / (dim.h - dim.mt - dim.mb)
     return ret
 end
 
 function refresh()
-    local dim = get_video_dimensions()
-    if not dim then
+    if not video_dimensions_stale then return end
+    video_dimensions_stale = false
+
+    local dim = mp.get_property_native("osd-dimensions")
+    local out_params = mp.get_property_native("video-out-params")
+    if not dim or not out_params then
         draw_ass("")
         return
+    end
+    local vid_width = out_params.dw
+    local vid_height = out_params.dh
+
+    function video_space_normalized_to_video(point)
+        local ret = {}
+        ret[1] = point[1] * vid_width
+        ret[2] = point[2] * vid_height
+        return ret
+    end
+    function video_space_normalized_to_screen(point)
+        local ret = {}
+        ret[1] = point[1] * (dim.w - dim.ml - dim.mr) + dim.ml
+        ret[2] = point[2] * (dim.h - dim.mt - dim.mb) + dim.mt
+        return ret
     end
 
     local line_start = {}
     local line_end = {}
     if second_point then
-        line_start.image = first_point
-        line_start.screen = video_space_to_screen(first_point)
-        line_end.image = second_point
-        line_end.screen = video_space_to_screen(second_point)
+        line_start.image = video_space_normalized_to_video(first_point)
+        line_start.screen = video_space_normalized_to_screen(first_point)
+        line_end.image = video_space_normalized_to_video(second_point)
+        line_end.screen = video_space_normalized_to_screen(second_point)
     elseif first_point then
-        line_start.image = first_point
-        line_start.screen = video_space_to_screen(first_point)
-        line_end.image = cursor_video_space()
+        line_start.image = video_space_normalized_to_video(first_point)
+        line_start.screen = video_space_normalized_to_screen(first_point)
+        line_end.image = video_space_normalized_to_video(cursor_video_space_normalized(dim))
         line_end.screen = {}
         line_end.screen[1], line_end.screen[2] = mp.get_mouse_pos()
     else
         local mx, my = mp.get_mouse_pos()
-        line_start.image = cursor_video_space()
+        line_start.image = video_space_normalized_to_video(cursor_video_space_normalized(dim))
         line_start.screen = {}
         line_start.screen[1], line_start.screen[2] = mp.get_mouse_pos()
         line_end = line_start
@@ -341,10 +236,16 @@ function refresh()
     draw_ass(a.text)
 end
 
+function mark_stale()
+    video_dimensions_stale = true
+end
+
 function next()
     if state == 0 then
         mp.register_idle(refresh)
-        mp.add_forced_key_binding("mouse_move", "ruler-mouse-move", function() end) -- only used to get an idle event on mouse move
+        mark_stale()
+        mp.observe_property("osd-dimensions", nil, mark_stale)
+        mp.add_forced_key_binding("mouse_move", "ruler-mouse-move", mark_stale)
         for _,key in ipairs(opts.confirm_bindings) do
             mp.add_forced_key_binding(key, "ruler-next-" .. key, next)
         end
@@ -356,11 +257,15 @@ function next()
             next()
         end
     elseif state == 1 then
-        first_point = cursor_video_space()
+        local dim = mp.get_property_native("osd-dimensions")
+        if not dim then return end
+        first_point = cursor_video_space_normalized(dim)
         state = 2
     elseif state == 2 then
+        local dim = mp.get_property_native("osd-dimensions")
+        if not dim then return end
+        second_point = cursor_video_space_normalized(dim)
         state = 3
-        second_point = cursor_video_space()
         if opts.clear_on_second_point_set then
             next()
         end
@@ -372,6 +277,7 @@ end
 function stop()
     if state == 0 then return end
     mp.unregister_idle(refresh)
+    mp.unobserve_property(mark_stale)
     for _,key in ipairs(opts.confirm_bindings) do
         mp.remove_key_binding("ruler-next-" .. key)
     end
