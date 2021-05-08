@@ -5,7 +5,7 @@ local opts = {
     text_top_left = "",
     text_top_right = "",
     text_bottom_left = "${filename} [${playlist-pos-1}/${playlist-count}]",
-    text_bottom_right = "[${dwidth}x${dheight}]",
+    text_bottom_right = "[${dwidth:X}x${dheight:X}]",
 }
 (require 'mp.options').read_options(opts)
 
@@ -55,13 +55,13 @@ local active = false
 function enable()
     if active then return end
     active = true
-    local start = 0
     for _, str in ipairs({
         opts.text_top_left,
         opts.text_top_right,
         opts.text_bottom_left,
         opts.text_bottom_right,
     }) do
+        local start = 0
         while true do
             local s, e, cap = string.find(str, "%${[?!]?([%l%d-/]*)", start)
             if not s then break end
