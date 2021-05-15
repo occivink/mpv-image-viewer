@@ -83,7 +83,7 @@ function disable()
     mp.unobserve_property(mark_stale)
     mp.unregister_idle(refresh)
     ass.status_line = ""
-    draw_ass()
+    draw_ass("")
 end
 
 function toggle()
