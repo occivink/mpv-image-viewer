@@ -10,31 +10,45 @@ local opts = {
     view_above_image = true,
     hide_when_full_image_in_view = true,
 }
-(require 'mp.options').read_options(opts)
 
-function process(input)
+local msg = require 'mp.msg'
+local assdraw = require 'mp.assdraw'
+local options = require 'mp.options'
+
+options.read_options(opts, mp.get_script_name(), function(c)
+    if c["enabled"] then
+        if opts.enabled then
+            enable()
+        else
+            disable()
+        end
+    end
+    mark_stale()
+end)
+
+function split_comma(input)
     local ret = {}
     for str in string.gmatch(input, "([^,]+)") do
         ret[#ret + 1] = tonumber(str)
     end
     return ret
 end
-opts.center=process(opts.center)
-opts.max_size=process(opts.max_size)
 
-local msg = require 'mp.msg'
-local assdraw = require 'mp.assdraw'
-
-local video_dimensions_stale = true
+local active = false
+local refresh = true
 
 function draw_ass(ass)
     local ww, wh = mp.get_osd_size()
     mp.set_osd_ass(ww, wh, ass)
 end
 
+function mark_stale()
+    refresh = true
+end
+
 function refresh_minimap()
-    if not video_dimensions_stale then return end
-    video_dimensions_stale = false
+    if not refresh then return end
+    refresh = false
 
     local dim = mp.get_property_native("osd-dimensions")
     if not dim then
@@ -51,14 +65,13 @@ function refresh_minimap()
         end
     end
 
-    local center = {
-        opts.center[1] * 0.01 * ww,
-        opts.center[2] * 0.01 * wh
-    }
-    local cutoff = {
-        opts.max_size[1] * 0.01 * ww * 0.5,
-        opts.max_size[2] * 0.01 * wh * 0.5
-    }
+    local center = split_comma(opts.center)
+    center[1] = center[1] * 0.01 * ww
+    center[2] = center[2] * 0.01 * wh
+    local cutoff = split_comma(opts.max_size)
+    cutoff[1] = cutoff[1] * 0.01 * ww * 0.5
+    cutoff[2] = cutoff[2] * 0.01 * wh * 0.5
+
     local a = assdraw.ass_new()
     local draw = function(x, y, w, h, opacity, color)
         a:new_event()
@@ -155,34 +168,32 @@ function refresh_minimap()
     draw_ass(a.text)
 end
 
-local active = false
-
-function enable_minimap()
+function enable()
     if active then return end
     active = true
-    video_dimensions_stale = true
-    mp.observe_property("osd-dimensions", nil, function() video_dimensions_stale = true end)
+    mp.observe_property("osd-dimensions", nil, mark_stale)
     mp.register_idle(refresh_minimap)
+    mark_stale()
 end
 
-function disable_minimap()
+function disable()
     if not active then return end
     active = false
-    draw_ass("")
-    mp.unobserve_property("osd-dimensions")
+    mp.unobserve_property(mark_stale)
     mp.unregister_idle(refresh_minimap)
+    draw_ass("")
 end
 
 function toggle()
     if active then
-        disable_minimap()
+        disable()
     else
-        enable_minimap()
+        enable()
     end
 end
 
 if opts.enabled then
-    enable_minimap()
+    enable()
 end
 
 mp.add_key_binding(nil, "minimap-enable", enable)
