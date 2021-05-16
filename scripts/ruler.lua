@@ -1,18 +1,26 @@
 local opts = {
-    show_distance=true,
-    show_coordinates=true,
-    coordinates_space="image",
-    show_angles="degrees",
-    line_width=2,
-    dots_radius=3,
-    font_size=36,
-    line_color="33",
-    confirm_bindings="MBTN_LEFT,ENTER",
-    exit_bindings="ESC",
-    set_first_point_on_begin=false,
-    clear_on_second_point_set=false,
+    show_distance = true,
+    show_coordinates = true,
+    coordinates_space = "image",
+    show_angles = "degrees",
+    line_width = 2,
+    dots_radius = 3,
+    font_size = 36,
+    line_color = "33",
+    confirm_bindings = "MBTN_LEFT,ENTER",
+    exit_bindings = "ESC",
+    set_first_point_on_begin = false,
+    clear_on_second_point_set = false,
 }
-(require 'mp.options').read_options(opts)
+
+local options = require 'mp.options'
+local msg = require 'mp.msg'
+local assdraw = require 'mp.assdraw'
+
+local state = 0 -- {0,1,2,3} = {inactive,setting first point,setting second point,done}
+local first_point = nil -- in normalized video space coordinates
+local second_point = nil -- in normalized video space coordinates
+local video_dimensions_stale = false
 
 function split(input)
     local ret = {}
@@ -21,17 +29,21 @@ function split(input)
     end
     return ret
 end
-opts.confirm_bindings=split(opts.confirm_bindings)
-opts.exit_bindings=split(opts.exit_bindings)
 
-local msg = require 'mp.msg'
-local assdraw = require 'mp.assdraw'
+local confirm_bindings = split(opts.confirm_bindings)
+local exit_bindings = split(opts.exit_bindings)
 
-local video_dimensions_stale = false
-
-local state = 0 -- {0,1,2,3} = {inactive,setting first point,setting second point,done}
-local first_point = nil -- in normalized video space coordinates
-local second_point = nil -- in normalized video space coordinates
+options.read_options(opts, mp.get_script_name(), function()
+    if state ~= 0 then
+        remove_bindings()
+    end
+    confirm_bindings = split(opts.confirm_bindings)
+    exit_bindings = split(opts.exit_bindings)
+    if state ~= 0 then
+        add_bindings()
+        mark_stale()
+    end
+end)
 
 function draw_ass(ass)
     local ww, wh = mp.get_osd_size()
@@ -240,34 +252,48 @@ function mark_stale()
     video_dimensions_stale = true
 end
 
-function next()
+function add_bindings()
+    mp.add_forced_key_binding("mouse_move", "ruler-mouse-move", mark_stale)
+    for _, key in ipairs(confirm_bindings) do
+        mp.add_forced_key_binding(key, "ruler-next-" .. key, next_step)
+    end
+    for _, key in ipairs(exit_bindings) do
+        mp.add_forced_key_binding(key, "ruler-stop-" .. key, stop)
+    end
+end
+
+function remove_bindings()
+    for _, key in ipairs(confirm_bindings) do
+        mp.remove_key_binding("ruler-next-" .. key)
+    end
+    for _, key in ipairs(exit_bindings) do
+        mp.remove_key_binding("ruler-stop-" .. key)
+    end
+    mp.remove_key_binding("ruler-mouse-move")
+end
+
+function next_step()
     if state == 0 then
-        mp.register_idle(refresh)
-        mark_stale()
-        mp.observe_property("osd-dimensions", nil, mark_stale)
-        mp.add_forced_key_binding("mouse_move", "ruler-mouse-move", mark_stale)
-        for _,key in ipairs(opts.confirm_bindings) do
-            mp.add_forced_key_binding(key, "ruler-next-" .. key, next)
-        end
-        for _,key in ipairs(opts.exit_bindings) do
-            mp.add_forced_key_binding(key, "ruler-stop-" .. key, stop)
-        end
         state = 1
+        mp.register_idle(refresh)
+        mp.observe_property("osd-dimensions", nil, mark_stale)
+        mark_stale()
+        add_bindings()
         if opts.set_first_point_on_begin then
-            next()
+            next_step()
         end
     elseif state == 1 then
         local dim = mp.get_property_native("osd-dimensions")
         if not dim then return end
-        first_point = cursor_video_space_normalized(dim)
         state = 2
+        first_point = cursor_video_space_normalized(dim)
     elseif state == 2 then
         local dim = mp.get_property_native("osd-dimensions")
         if not dim then return end
-        second_point = cursor_video_space_normalized(dim)
         state = 3
+        second_point = cursor_video_space_normalized(dim)
         if opts.clear_on_second_point_set then
-            next()
+            next_step()
         end
     else
         stop()
@@ -278,17 +304,11 @@ function stop()
     if state == 0 then return end
     mp.unregister_idle(refresh)
     mp.unobserve_property(mark_stale)
-    for _,key in ipairs(opts.confirm_bindings) do
-        mp.remove_key_binding("ruler-next-" .. key)
-    end
-    for _,key in ipairs(opts.exit_bindings) do
-        mp.remove_key_binding("ruler-stop-" .. key)
-    end
-    mp.remove_key_binding("ruler-mouse-move")
+    remove_bindings()
     state = 0
     first_point = nil
     second_point = nil
     draw_ass("")
 end
 
-mp.add_key_binding(nil, "ruler", next)
+mp.add_key_binding(nil, "ruler", next_step)
