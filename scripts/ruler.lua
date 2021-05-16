@@ -33,7 +33,7 @@ end
 local confirm_bindings = split(opts.confirm_bindings)
 local exit_bindings = split(opts.exit_bindings)
 
-options.read_options(opts, mp.get_script_name(), function()
+options.read_options(opts, nil, function()
     if state ~= 0 then
         remove_bindings()
     end

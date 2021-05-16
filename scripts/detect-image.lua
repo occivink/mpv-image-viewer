@@ -6,7 +6,7 @@ local opts = {
 local options = require 'mp.options'
 local msg = require 'mp.msg'
 
-options.read_options(opts, mp.get_script_name(), function() end)
+options.read_options(opts, nil, function() end)
 
 function run_maybe(str)
     if str ~= "" then

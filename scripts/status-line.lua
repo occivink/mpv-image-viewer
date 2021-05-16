@@ -12,7 +12,7 @@ local msg = require 'mp.msg'
 local assdraw = require 'mp.assdraw'
 local options = require 'mp.options'
 
-options.read_options(opts, mp.get_script_name(), function(c)
+options.read_options(opts, nil, function(c)
     if c["enabled"] then
         if opts.enabled then
             enable()
