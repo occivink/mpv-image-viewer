@@ -40,7 +40,7 @@ There are no default bindings, see [`input.conf`](input.conf#L19-L67) for how to
 
 Adds a status line that can show different properties in the corner of the window. By default it shows `filename [positon/total]` in the bottom left.
 
-Can be activated with the commands `status-line-enable`, `status-line-disable`, `status-line-toggle` and configured through [`status_line.conf`](script-opts/status_line.conf).
+Can be activated with the commands `enable-status-line`, `disable-status-line`, `toggle-status-line` and configured through [`status_line.conf`](script-opts/status_line.conf).
 
 ## detect-image.lua
 
