@@ -123,6 +123,20 @@ if opts.enabled then
     enable()
 end
 
-mp.add_key_binding(nil, "enable-status-line", enable)
-mp.add_key_binding(nil, "disable-status-line", disable)
-mp.add_key_binding(nil, "toggle-status-line", toggle)
+mp.add_key_binding(nil, "status-line-enable", enable)
+mp.add_key_binding(nil, "status-line-disable", disable)
+mp.add_key_binding(nil, "status-line-toggle", toggle)
+
+-- TODO remove
+mp.add_key_binding(nil, "enable-status-line", function()
+    msg.warn("This binding is deprecated, use 'status-line-enable' instead")
+    enable()
+end)
+mp.add_key_binding(nil, "disable-status-line", function()
+    msg.warn("This binding is deprecated, use 'status-line-disable' instead")
+    disable()
+end)
+mp.add_key_binding(nil, "toggle-status-line", function()
+    msg.warn("This binding is deprecated, use 'status-line-toggle' instead")
+    toggle()
+end)
