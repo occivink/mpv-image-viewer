@@ -99,15 +99,25 @@ function idle_handler()
     mp.set_osd_ass(ww, wh, a.text)
 end
 
+function fix_position()
+    local ww, wh = mp.get_osd_size()
+    for i, bar in ipairs(active_bars) do
+        bar.x = ww / 5
+        bar.y = wh / 2 + i * 50
+        bar.w = ww - 2 * (ww / 5)
+        bar.h = 30
+    end
+end
+
 function dimensions_changed()
     stale = true
+    fix_position()
 end
 
 function enable()
     if enabled then return end
     enabled = true
     mp.add_forced_key_binding("MBTN_LEFT", "mouse_left", handle_mouse_left, {complex=true})
-    local ww, wh = mp.get_osd_size()
     for i, prop in ipairs(split_comma(opts.bars)) do
         local prop_info = mp.get_property_native("option-info/" .. prop)
         if not prop_info then
@@ -121,14 +131,11 @@ function enable()
                 value = mp.get_property_number(prop),
                 min_value = prop_info.min,
                 max_value = prop_info.max,
-                x = ww / 5,
-                y = wh / 2 + i * 50,
-                w = ww - 2 * (ww / 5),
-                h = 30,
             }
         end
     end
     stale = true
+    fix_position()
     mp.observe_property("osd-dimensions", "native", dimensions_changed)
     mp.register_idle(idle_handler)
 end
