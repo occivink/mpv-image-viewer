@@ -1,5 +1,5 @@
 -- Adds a minimap that displays the position of the image relative to the view
--- activated with `minimap-enable`, `minimap-disable`, `minimap-toggle` and configured via mvi_4_minimap.conf
+-- activated with `minimap-enable`, `minimap-disable`, `minimap-toggle` and configured via 4_minimap.conf
 
 local std  = require "lib/std".std
 

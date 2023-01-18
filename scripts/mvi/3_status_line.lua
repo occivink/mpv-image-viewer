@@ -1,5 +1,5 @@
 -- Adds a status line that can show different properties in the corner of the window. By default it shows `filename [positon/total]` in the bottom left
--- Can be activated with the commands `status-line-enable`, `status-line-disable`, `status-line-toggle` and configured through mvi_3_status_line.conf
+-- Can be activated with the commands `status-line-enable`, `status-line-disable`, `status-line-toggle` and configured through 3_status_line.conf
 
 local std  = require "lib/std".std
 

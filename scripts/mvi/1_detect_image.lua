@@ -1,4 +1,4 @@
--- Detects when 🖼 are loaded and allows you to run commands configured in mvi_1_detect_image.conf
+-- Detects when 🖼 are loaded and allows you to run commands configured in 1_detect_image.conf
 
 local std  = require "lib/std".std
 

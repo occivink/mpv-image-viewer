@@ -1,5 +1,5 @@
 -- Adds a `ruler` command that lets you measure positions, distances and angles in the image
--- Configure via mvi_5_ruler.conf
+-- Configure via 5_ruler.conf
 
 local std  = require "lib/std".std
 
