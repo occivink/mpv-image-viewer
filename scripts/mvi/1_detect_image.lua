@@ -22,12 +22,12 @@ options.read_options(opts, opt_path_rel, function() end)
 -- msg.info("on_load_image      	= " .. tostring(opts.on_load_image))
 -- msg.info("on_load_non_image  	= " .. tostring(opts.on_load_non_image))
 
-function run_maybe(str)
+local function run_maybe(str)
   if str ~= "" then mp.command(str) end
 end
 
 local wasImg = false
-function set_image(isImg)
+local function set_image(isImg)
   if     isImg and not wasImg then msg.info("Detected 🖼 #1"); run_maybe(opts.on_load_image_first) end
   if     isImg                then msg.info("Detected 🖼"   ); run_maybe(opts.on_load_image      ) end
   if not isImg and     wasImg then msg.info("Detected Non🖼"); run_maybe(opts.on_load_non_image  ) end
@@ -35,7 +35,7 @@ function set_image(isImg)
 end
 
 local properties = {}
-function properties_changed()
+local function properties_changed()
   local framecount	= properties["estimated-frame-count"]
   local dwidth    	= properties["dwidth"               ]
   local tracks    	= properties["track-list"           ]
@@ -57,7 +57,7 @@ function properties_changed()
   end
 end
 
-function observe(propname)
+local function observe(propname)
   mp.observe_property(propname, "native", function(_, val)
     if val ~= properties[propname] then
       properties[propname] = val

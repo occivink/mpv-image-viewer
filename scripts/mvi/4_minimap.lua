@@ -35,7 +35,7 @@ options.read_options(opts, opt_path_rel, function(c)
   mark_stale()
 end)
 
-function split_comma(input)
+local function split_comma(input)
   local ret = {}
   for str in string.gmatch(input, "([^,]+)") do
     ret[#ret + 1] = tonumber(str)
@@ -47,16 +47,16 @@ end
 local active = false
 local refresh = true
 
-function draw_ass(ass)
+local function draw_ass(ass)
   local ww, wh = mp.get_osd_size()
   mp.set_osd_ass(ww, wh, ass)
 end
 
-function mark_stale()
+local function mark_stale()
   refresh = true
 end
 
-function refresh_minimap()
+local function refresh_minimap()
   if not refresh then return end
   refresh = false
 
@@ -160,7 +160,7 @@ function refresh_minimap()
   draw_ass(a.text)
 end
 
-function enable()
+local function enable()
   if active then return end
   active = true
   mp.observe_property("osd-dimensions", nil, mark_stale)
@@ -168,7 +168,7 @@ function enable()
   mark_stale()
 end
 
-function disable()
+local function disable()
   if not active then return end
   active = false
   mp.unobserve_property(mark_stale)
@@ -176,7 +176,7 @@ function disable()
   draw_ass("")
 end
 
-function toggle()
+local function toggle()
   if active then disable()
   else            enable(); end
 end

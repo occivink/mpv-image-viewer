@@ -46,12 +46,12 @@ end)
 local stale 	= true
 local active	= false
 
-function draw_ass(ass)
+local function draw_ass(ass)
   local ww, wh = mp.get_osd_size()
   mp.set_osd_ass(ww, wh, ass)
 end
 
-function refresh()
+local function refresh()
   if not stale then return end
   stale = false
   local a = assdraw:ass_new()
@@ -78,11 +78,11 @@ function refresh()
   draw_ass(a.text)
 end
 
-function mark_stale()
+local function mark_stale()
   stale = true
 end
 
-function observe_properties()
+local function observe_properties()
   mp.unobserve_property(mark_stale)
   if not active then return end
   for _, str in ipairs({
@@ -104,7 +104,7 @@ function observe_properties()
   mp.observe_property("osd-height", nil, mark_stale)
 end
 
-function enable()
+local function enable()
   if active then return end
   active = true
   observe_properties()
@@ -113,7 +113,7 @@ function enable()
 end
 
 
-function disable()
+local function disable()
   if not active then return end
   active = false
   observe_properties()
@@ -121,12 +121,9 @@ function disable()
   draw_ass("")
 end
 
-function toggle()
-  if active then
-    disable()
-  else
-    enable()
-  end
+local function toggle()
+  if active then disable()
+  else            enable() end
 end
 
 if opts.enabled then

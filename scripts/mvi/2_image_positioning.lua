@@ -31,7 +31,7 @@ local assdraw	= require 'mp.assdraw'
 options.read_options(opts, opt_path_rel, function() end)
 -- msg.info("drag_to_pan_margin	= " .. tostring(opts.drag_to_pan_margin))
 
-function clamp(value, low, high)
+local function clamp(value, low, high)
   if     value <= low  then return low
   elseif value >= high then return high
   else                      return value end
@@ -39,7 +39,7 @@ end
 
 local cleanup = nil -- function set up by drag-to-pan/pan-follows cursor and must be called to clean lingering state
 
-function drag_to_pan_handler(table)
+local function drag_to_pan_handler(table)
   if cleanup then cleanup(); cleanup = nil end
   if table["event"] == "down" then
     local dim = mp.get_property_native("osd-dimensions")
@@ -104,7 +104,7 @@ function drag_to_pan_handler(table)
   end
 end
 
-function pan_follows_cursor_handler(table)
+local function pan_follows_cursor_handler(table)
   if cleanup then
     cleanup()
     cleanup = nil
@@ -144,7 +144,7 @@ function pan_follows_cursor_handler(table)
   end
 end
 
-function cursor_centric_zoom_handler(amt)
+local function cursor_centric_zoom_handler(amt)
   local zoom_inc = tonumber(amt)
   if not zoom_inc or zoom_inc == 0 then return end
   local dim = mp.get_property_native("osd-dimensions")
@@ -208,7 +208,7 @@ function cursor_centric_zoom_handler(amt)
   mp.command("no-osd set video-zoom " .. zoom_origin + zoom_inc .. "; no-osd set video-pan-x " .. clamp(new_pan_x, -3, 3) .. "; no-osd set video-pan-y " .. clamp(new_pan_y, -3, 3))
 end
 
-function align_border(x, y)
+local function align_border(x, y)
   -- local dim_s = mp.get_property("osd-dimensions"); print("dim_s"..tostring(dim_s))
 
   local dim = mp.get_property_native("osd-dimensions")
@@ -237,7 +237,7 @@ function align_border(x, y)
   end
 end
 
-function pan_image(axis, amount, zoom_invariant, image_constrained)
+local function pan_image(axis, amount, zoom_invariant, image_constrained)
   amount = tonumber(amount)
   if not amount or amount == 0 or axis ~= "x" and axis ~= "y" then return end
   if zoom_invariant == "yes" then
@@ -265,13 +265,13 @@ function pan_image(axis, amount, zoom_invariant, image_constrained)
   mp.set_property_number(prop, old_pan + amount)
 end
 
-function rotate_video(amt)
+local function rotate_video(amt)
   local rot = mp.get_property_number("video-rotate")
   rot = (rot + amt) % 360
   mp.set_property_number("video-rotate", rot)
 end
 
-function reset_pan_if_visible()
+local function reset_pan_if_visible()
   local dim = mp.get_property_native("osd-dimensions")
   if not dim then return end
   local command = ""

@@ -34,7 +34,7 @@ local first_point           	= nil	-- in normalized video space coordinates
 local second_point          	= nil	-- in normalized video space coordinates
 local video_dimensions_stale	= false
 
-function split(input)
+local function split(input)
   local ret = {}
   for str in string.gmatch(input, "([^,]+)") do
     ret[#ret + 1] = str
@@ -58,13 +58,13 @@ options.read_options(opts, opt_path_rel, function()
 end)
 -- msg.info("confirm_bindings	= " .. tostring(opts.confirm_bindings))
 
-function draw_ass(ass)
+local function draw_ass(ass)
   local ww, wh = mp.get_osd_size()
   mp.set_osd_ass(ww, wh, ass)
 end
 
 
-function cursor_video_space_normalized(dim)
+local function cursor_video_space_normalized(dim)
   local mx, my = mp.get_mouse_pos()
   local ret = {}
   ret[1] = (mx - dim.ml) / (dim.w - dim.ml - dim.mr)
@@ -72,7 +72,7 @@ function cursor_video_space_normalized(dim)
   return ret
 end
 
-function refresh()
+local function refresh()
   if not video_dimensions_stale then return end
   video_dimensions_stale = false
 
@@ -261,11 +261,11 @@ function refresh()
   draw_ass(a.text)
 end
 
-function mark_stale()
+local function mark_stale()
   video_dimensions_stale = true
 end
 
-function add_bindings()
+local function add_bindings()
   mp.add_forced_key_binding("mouse_move", "ruler-mouse-move", mark_stale)
   for _, key in ipairs(confirm_bindings) do
     mp.add_forced_key_binding(key, "ruler-next-" .. key, next_step)
@@ -275,7 +275,7 @@ function add_bindings()
   end
 end
 
-function remove_bindings()
+local function remove_bindings()
   for _, key in ipairs(confirm_bindings) do
     mp.remove_key_binding("ruler-next-" .. key)
   end
@@ -285,7 +285,7 @@ function remove_bindings()
   mp.remove_key_binding("ruler-mouse-move")
 end
 
-function next_step()
+local function next_step()
   if state == 0 then
     state = 1
     mp.register_idle(refresh)
@@ -313,7 +313,7 @@ function next_step()
   end
 end
 
-function stop()
+local function stop()
   if state == 0 then return end
   mp.unregister_idle(refresh)
   mp.unobserve_property(mark_stale)
