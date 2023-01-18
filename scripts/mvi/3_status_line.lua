@@ -57,7 +57,7 @@ local function refresh()
   local a = assdraw:ass_new()
   local draw_text = function(text, an, x, y)
     if text == "" then return end
-    local expanded = mp.command_native({ "expand-text", text})
+    local expanded = mp.command_native({"expand-text", text})
     if not expanded then
       msg.error("Error expanding status-line")
       return
@@ -126,10 +126,8 @@ local function toggle()
   else            enable() end
 end
 
-if opts.enabled then
-  enable()
-end
+if opts.enabled then enable() end
 
-mp.add_key_binding(nil, "status-line-enable" 	, enable)
+mp.add_key_binding(nil, "status-line-enable" 	, enable )
 mp.add_key_binding(nil, "status-line-disable"	, disable)
-mp.add_key_binding(nil, "status-line-toggle" 	, toggle)
+mp.add_key_binding(nil, "status-line-toggle" 	, toggle )

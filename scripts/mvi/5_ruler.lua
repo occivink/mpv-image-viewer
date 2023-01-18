@@ -318,9 +318,9 @@ local function stop()
   mp.unregister_idle(refresh)
   mp.unobserve_property(mark_stale)
   remove_bindings()
-  state = 0
-  first_point = nil
-  second_point = nil
+  state       	= 0
+  first_point 	= nil
+  second_point	= nil
   draw_ass("")
 end
 

@@ -66,6 +66,7 @@ local function observe(propname)
     end
   end)
 end
+
 observe("estimated-frame-count")
 observe("track-list"           )
 observe("dwidth"               )
