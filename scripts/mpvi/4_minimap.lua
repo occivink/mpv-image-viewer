@@ -63,7 +63,7 @@ end
 
 local function mark_stale() refresh = true end
 
-local function refresh_minimap()
+local function refresh_ui()
   if not refresh then return end
   refresh = false
 
@@ -148,21 +148,19 @@ end
 
 local function enable()
   if     active then return else active = true  end
-  mp.observe_property  ("osd-dimensions"   , nil, mark_stale); mp.register_idle  (refresh_minimap)
+  mp.observe_property  ("osd-dimensions"   , nil, mark_stale); mp.register_idle  (refresh_ui)
     -- call this whenever OSD dimensions change    ↑  helps to catch OSD init on launch
     -- delay refresh until all notifications have been received                          ↑
   mark_stale()
 end
-
 local function disable()
   if not active then return else active = false end
-  mp.unobserve_property(                          mark_stale); mp.unregister_idle(refresh_minimap)
+  mp.unobserve_property(                          mark_stale); mp.unregister_idle(refresh_ui)
   hide_ov()
 end
-
 local function toggle()
   if active then disable()
-  else            enable(); end
+  else            enable() end
 end
 
 if opts.enabled then enable() end
