@@ -58,9 +58,19 @@ options.read_options(opts, opt_path_rel, function()
 end)
 -- msg.info("confirm_bindings	= " .. tostring(opts.confirm_bindings))
 
-local function draw_ass(ass)
-  local ww, wh = mp.get_osd_size()
-  mp.set_osd_ass(ww, wh, ass)
+local ov	= mp.create_osd_overlay("ass-events")
+
+local function hide_ov()
+  ov.data=""
+  ov:remove()
+end
+local function draw_ov(asstxt)
+  local ww, wh, par = mp.get_osd_size()
+  if not (ww > 0 and
+          wh > 0    ) then return end
+  ov.res_x, ov.res_y = ww, wh
+  ov.data   = asstxt
+  ov:update()
 end
 
 
@@ -78,7 +88,7 @@ local function refresh()
 
   local dim       	= std.getDimOSD()
   local out_params	= mp.get_property_native("video-out-params")
-  if not dim or not out_params then draw_ass(""); return end
+  if not dim or not out_params then hide_ov(); return end
   local vid_width  = out_params.dw
   local vid_height = out_params.dh
 
@@ -255,7 +265,7 @@ local function refresh()
     end
   end
 
-  draw_ass(a.text)
+  draw_ov(a.text)
 end
 
 local function mark_stale()
@@ -310,7 +320,7 @@ local function stop()
   state       	= 0
   first_point 	= nil
   second_point	= nil
-  draw_ass("")
+  hide_ov()
 end
 
 mp.add_key_binding(nil, "ruler", next_step)
