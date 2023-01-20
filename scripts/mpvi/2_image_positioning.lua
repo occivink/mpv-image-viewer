@@ -272,19 +272,6 @@ local function reset_pan_if_visible()
   end
 end
 
-function ttt(x, y)
-  local dim = mp.get_property_native("osd-dimensions")
-  if not dim then return end
-  local video_size	= { dim.w - dim.ml - dim.mr, dim.h - dim.mt - dim.mb }
-  local x, y      	= tonumber(x), tonumber(y)
-  local command   	= ""
-  print("w=¦"..tostring(dim.w) .."¦".."ml=¦"..tostring(dim.ml) .."¦".."mr=¦"..tostring(dim.mr) .."¦".."h=¦"..tostring(dim.h) .."¦".."mt=¦"..tostring(dim.mt) .."¦".."mb=¦"..tostring(dim.mb) .."¦")
-  print("x=¦"..tostring(x) .. "¦y=¦"..tostring(y).."¦".."video_size=¦"..tostring(video_size[1]).."/"..tostring(video_size[2]).."¦")
-  if x then command = command .."no-osd set video-pan-x ".. clamp(-x*(dim.ml + dim.mr) / (2*video_size[1]), -3, 3) .. ";" end
-  if y then command = command .."no-osd set video-pan-y ".. clamp(-y*(dim.mt + dim.mb) / (2*video_size[2]), -3, 3) .. ";" end
-  print("cmd after y="..tostring(command))
-end
-mp.add_key_binding(nil, "ttt"	, ttt)
 
 mp.add_key_binding(nil, "drag-to-pan"         	, drag_to_pan_handler       	, {complex = true})
 mp.add_key_binding(nil, "pan-follows-cursor"  	, pan_follows_cursor_handler	, {complex = true})
