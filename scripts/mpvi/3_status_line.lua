@@ -25,13 +25,9 @@ local assdraw	= require 'mp.assdraw'
 local options	= require 'mp.options'
 
 options.read_options(opts, opt_path_rel, function(c)
-  if c["enabled"] then
-    if opts.enabled then  enable()
-    else                 disable() end
-  end
-  if c["size"] or c["margin"] then
-    mark_stale()
-  end
+  if c["enabled"] then if opts.enabled then  enable()
+                       else                 disable() end end
+  if c["size"] or c["margin"]          then mark_stale() end
   if c["text_top_left"    ] or
      c["text_top_right"   ] or
      c["text_bottom_left" ] or
@@ -41,7 +37,6 @@ options.read_options(opts, opt_path_rel, function(c)
     mark_stale()
   end
 end)
--- msg.info("text_bottom_left	= " .. tostring(opts.text_bottom_left))
 
 local stale 	= true
 local active	= false
@@ -61,7 +56,7 @@ local function draw_ov(asstxt)
   ov:update()
 end
 
-local function refresh()
+local function refresh_ui()
   if not stale then return end
   stale = false
   local a = assdraw:ass_new()
@@ -88,9 +83,7 @@ local function refresh()
   draw_ov(a.text)
 end
 
-local function mark_stale()
-  stale = true
-end
+local function mark_stale() stale = true end
 
 local function observe_properties()
   mp.unobserve_property(mark_stale)
@@ -115,22 +108,15 @@ local function observe_properties()
 end
 
 local function enable()
-  if active then return end
-  active = true
-  observe_properties()
-  mp.register_idle(refresh)
+  if     active then return else active = true  end
+  observe_properties(); mp.register_idle(  refresh_ui)
   mark_stale()
 end
-
-
 local function disable()
-  if not active then return end
-  active = false
-  observe_properties()
-  mp.unregister_idle(refresh)
+  if not active then return else active = false end
+  observe_properties(); mp.unregister_idle(refresh_ui)
   hide_ov()
 end
-
 local function toggle()
   if active then disable()
   else            enable() end
