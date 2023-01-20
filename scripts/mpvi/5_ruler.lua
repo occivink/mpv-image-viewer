@@ -289,9 +289,7 @@ local function next_step()
     mp.observe_property("osd-dimensions", nil, mark_stale)
     mark_stale()
     add_bindings()
-    if opts.set_first_point_on_begin then
-      next_step()
-    end
+    if opts.set_first_point_on_begin  then next_step() end
   elseif state == 1 then
     local dim = std.getDimOSD(); if not dim then return end
     state = 2
@@ -300,12 +298,8 @@ local function next_step()
     local dim = std.getDimOSD(); if not dim then return end
     state = 3
     second_point = cursor_video_space_normalized(dim)
-    if opts.clear_on_second_point_set then
-      next_step()
-    end
-  else
-    stop()
-  end
+    if opts.clear_on_second_point_set then next_step() end
+  else                                     stop()      end
 end
 
 local function stop()
