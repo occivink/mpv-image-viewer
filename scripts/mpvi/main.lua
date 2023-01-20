@@ -7,10 +7,10 @@ function load(relative_path)
   dofile(script_directory ..'/'.. relative_path)
 end
 
--- configs are @ script-opts/mvi/<script_name>.conf
-load('1_detect_image'     	) -- detect when 🖼 are loaded, allows running commands from .conf
+-- configs are @ script-opts/mpvi/<script_name>.conf
 load('2_image_positioning'	) -- add several high-level commands to zoom and pan
 load('3_status_line'      	) -- add a status line that can show different properties in the window corner
 load('4_minimap'          	) -- add a minimap that displays the position of the image relative to the view
 load('5_ruler'            	) -- add a `ruler` command that lets you measure positions, distances and angles in the image
 load('6_freeze_window'    	) -- disabled window auto resizing on file changes to fit its size
+load('9_detect_image'     	) -- detect when 🖼 are loaded, allows running commands from .conf
