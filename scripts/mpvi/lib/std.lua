@@ -41,6 +41,17 @@ function std.basename(path) -- get filename from path
   return path:gsub("(.*[/\\])(.*)"    ,"%2")  -- (path/)(file) → (file)
 end
 
+-- MPV-specific functions
+function std.getDimOSD() -- get OSD dimensions only if they exist and wid/height positive
+  local dim = mp.get_property_native("osd-dimensions")
+  if not dim          then return nil, nil, nil end
+  local ww, wh = dim.w, dim.h
+  if not (ww > 0 and
+          wh > 0    ) then return nil, nil, nil end
+  return dim, ww, wh
+end
+
+
 return {
   std = std,
 }
