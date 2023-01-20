@@ -76,13 +76,10 @@ local function refresh()
   if not video_dimensions_stale then return end
   video_dimensions_stale = false
 
-  local dim = mp.get_property_native("osd-dimensions")
-  local out_params = mp.get_property_native("video-out-params")
-  if not dim or not out_params then
-    draw_ass("")
-    return
-  end
-  local vid_width = out_params.dw
+  local dim       	= std.getDimOSD()
+  local out_params	= mp.get_property_native("video-out-params")
+  if not dim or not out_params then draw_ass(""); return end
+  local vid_width  = out_params.dw
   local vid_height = out_params.dh
 
   function video_space_normalized_to_video(point)
@@ -296,13 +293,11 @@ local function next_step()
       next_step()
     end
   elseif state == 1 then
-    local dim = mp.get_property_native("osd-dimensions")
-    if not dim then return end
+    local dim = std.getDimOSD(); if not dim then return end
     state = 2
     first_point = cursor_video_space_normalized(dim)
   elseif state == 2 then
-    local dim = mp.get_property_native("osd-dimensions")
-    if not dim then return end
+    local dim = std.getDimOSD(); if not dim then return end
     state = 3
     second_point = cursor_video_space_normalized(dim)
     if opts.clear_on_second_point_set then
