@@ -108,7 +108,7 @@ local function pan_follows_cursor_handler(table)
   end
   if table["event"] == "down" then
     local dim, ww, wh = std.getDimOSD(); if not dim then return end
-    local video_size = {ww - dim.ml - dim.mr, w.h - dim.mt - dim.mb}
+    local video_size = {ww - dim.ml - dim.mr, wh - dim.mt - dim.mb}
     local moved = true
     local idle = function()
       if moved then
