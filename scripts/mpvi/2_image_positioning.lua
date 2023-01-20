@@ -46,19 +46,17 @@ local function drag_to_pan_handler(table)
     local mouse_pos_origin, video_pan_origin = {}, {}
     local moved = false
     mouse_pos_origin[1], mouse_pos_origin[2] = mp.get_mouse_pos()
-    video_pan_origin[1] = mp.get_property_number("video-pan-x")
-    video_pan_origin[2] = mp.get_property_number("video-pan-y")
-    local margin = opts.drag_to_pan_margin
-    local move_up = true
-    local move_lateral = true
+    video_pan_origin[1]	= mp.get_property_number("video-pan-x")
+    video_pan_origin[2]	= mp.get_property_number("video-pan-y")
     local video_size   	= {ww - dim.ml - dim.mr, wh - dim.mt - dim.mb}
+    local margin       	= opts.drag_to_pan_margin
+    local move_up      	= true
+    local move_lateral 	= true
     if not opts.drag_to_pan_move_if_full_view then
-      if dim.ml >= 0 and dim.mr >= 0 then
-        move_lateral = false
-      end
-      if dim.mt >= 0 and dim.mb >= 0 then
-        move_up = false
-      end
+      if dim.ml >= 0 and
+         dim.mr >= 0     then move_lateral = false end
+      if dim.mt >= 0 and
+         dim.mb >= 0     then move_up      = false end
     end
     if not move_up and not move_lateral then return end
     local idle = function()
@@ -169,7 +167,7 @@ local function cursor_centric_zoom_handler(amt)
     diff_width  = (2 ^ zoom_inc - 1) * video_size[1]
     diff_height = (2 ^ zoom_inc - 1) * video_size[2]
   end
-  local new_width = video_size[1] + diff_width
+  local new_width  = video_size[1] + diff_width
   local new_height = video_size[2] + diff_height
 
   local mouse_pos_origin = {}
@@ -214,15 +212,10 @@ local function align_border(x, y)
   local dim, ww, wh = std.getDimOSD(); if not dim then return end
   local video_size	= {ww - dim.ml - dim.mr, wh - dim.mt - dim.mb }
   local x, y      	= tonumber(x), tonumber(y)
-  local command   	= ""
-  print("w=¦"..tostring(dim.w) .."¦".."ml=¦"..tostring(dim.ml) .."¦".."mr=¦"..tostring(dim.mr) .."¦".."h=¦"..tostring(dim.h) .."¦".."mt=¦"..tostring(dim.mt) .."¦".."mb=¦"..tostring(dim.mb) .."¦")
-  print("x=¦"..tostring(x) .. "¦y=¦"..tostring(y).."¦".."video_size=¦"..tostring(video_size[1]).."/"..tostring(video_size[2]).."¦")
-  if x then command = command .."no-osd set video-pan-x ".. clamp(-x*(dim.ml + dim.mr) / (2*video_size[1]), -3, 3) .. ";" end
-  if y then command = command .."no-osd set video-pan-y ".. clamp(-y*(dim.mt + dim.mb) / (2*video_size[2]), -3, 3) .. ";" end
-  print("cmd after y="..tostring(command))
-  if command ~= "" then
-    mp.command(command)
-  end
+  local cmd       	= ""
+  if x then cmd = cmd .."no-osd set video-pan-x "..clamp(-x*(dim.ml + dim.mr) / (2*video_size[1]),-3,3)..";" end
+  if y then cmd = cmd .."no-osd set video-pan-y "..clamp(-y*(dim.mt + dim.mb) / (2*video_size[2]),-3,3)..";" end
+  if cmd ~= "" then mp.command(cmd) end
 end
 
 local function pan_image(axis, amount, zoom_invariant, image_constrained)
@@ -231,8 +224,8 @@ local function pan_image(axis, amount, zoom_invariant, image_constrained)
   if zoom_invariant == "yes" then
     amount = amount / 2 ^ mp.get_property_number("video-zoom")
   end
-  local prop = "video-pan-" .. axis
-  local old_pan = mp.get_property_number(prop)
+  local prop   	= "video-pan-" .. axis
+  local old_pan	= mp.get_property_number(prop)
   if image_constrained == "yes" then
     local dim, ww, wh = std.getDimOSD(); if not dim then return end
     local margin =
@@ -242,10 +235,8 @@ local function pan_image(axis, amount, zoom_invariant, image_constrained)
       or (                amount < 0) and dim.mb
     local vid_size = (axis == "x") and (ww - dim.ml - dim.mr) or (wh - dim.mt - dim.mb)
     local pixels_moved = math.abs(amount) * vid_size
-    -- the margin is already visible, no point going further
-    if margin >= 0 then
-      return
-    elseif margin + pixels_moved > 0 then
+    if     margin                >= 0 then return -- the margin is already visible, no point going further
+    elseif margin + pixels_moved >  0 then
       amount = -(math.abs(amount) / amount) * margin / vid_size
     end
   end
@@ -261,15 +252,9 @@ end
 local function reset_pan_if_visible()
   local dim = std.getDimOSD(); if not dim then return end
   local command = ""
-  if (dim.ml + dim.mr >= 0) then
-    command = command .. "no-osd set video-pan-x 0" .. ";"
-  end
-  if (dim.mt + dim.mb >= 0) then
-    command = command .. "no-osd set video-pan-y 0" .. ";"
-  end
-  if command ~= "" then
-    mp.command(command)
-  end
+  if (dim.ml + dim.mr >= 0) then command = command .. "no-osd set video-pan-x 0" .. ";" end
+  if (dim.mt + dim.mb >= 0) then command = command .. "no-osd set video-pan-y 0" .. ";" end
+  if command          ~= "" then mp.command(command)                                    end
 end
 
 
