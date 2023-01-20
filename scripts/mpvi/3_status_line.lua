@@ -46,9 +46,19 @@ end)
 local stale 	= true
 local active	= false
 
-local function draw_ass(ass)
-  local ww, wh = mp.get_osd_size()
-  mp.set_osd_ass(ww, wh, ass)
+local ov	= mp.create_osd_overlay("ass-events")
+
+local function hide_ov()
+  ov.data=""
+  ov:remove()
+end
+local function draw_ov(asstxt)
+  local ww, wh, par = mp.get_osd_size()
+  if not (ww > 0 and
+          wh > 0    ) then return end
+  ov.res_x, ov.res_y = ww, wh
+  ov.data   = asstxt
+  ov:update()
 end
 
 local function refresh()
@@ -75,7 +85,7 @@ local function refresh()
   draw_text(opts.text_top_right   	, 9, w-m,   m)
   draw_text(opts.text_bottom_left 	, 1,   m, h-m)
   draw_text(opts.text_bottom_right	, 3, w-m, h-m)
-  draw_ass(a.text)
+  draw_ov(a.text)
 end
 
 local function mark_stale()
@@ -118,7 +128,7 @@ local function disable()
   active = false
   observe_properties()
   mp.unregister_idle(refresh)
-  draw_ass("")
+  hide_ov()
 end
 
 local function toggle()
