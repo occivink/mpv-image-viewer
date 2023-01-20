@@ -47,33 +47,33 @@ end
 local active = false
 local refresh = true
 
-local function draw_ass(ass)
-  local ww, wh = mp.get_osd_size()
-  mp.set_osd_ass(ww, wh, ass)
-end
+local ov	= mp.create_osd_overlay("ass-events")
 
 local function mark_stale()
   refresh = true
+local function hide_ov()
+  ov.data=""
+  ov:remove()
+end
+local function draw_ov(asstxt)
+  local ww, wh, par = mp.get_osd_size()
+  if not (ww > 0 and
+          wh > 0    ) then return end
+  ov.res_x, ov.res_y = ww, wh
+  ov.data   = asstxt
+  ov:update()
 end
 
 local function refresh_minimap()
   if not refresh then return end
   refresh = false
 
-  local dim = mp.get_property_native("osd-dimensions")
-  if not dim then
-    draw_ass("")
-    return
-  end
-  local ww, wh = dim.w, dim.h
-
-  if not (ww > 0 and wh > 0) then return end
+  local dim, ww, wh = std.getDimOSD(); if not dim then hide_ov(); return end
   if opts.hide_when_full_image_in_view then
-    if dim.mt >= 0 and dim.mb >= 0 and dim.ml >= 0 and dim.mr >= 0 then
-      draw_ass("")
-      return
-    end
-  end
+    if   (dim.mt >= 0 and
+          dim.mb >= 0 and
+          dim.ml >= 0 and
+          dim.mr >= 0    )                        then hide_ov(); return end end
 
   local center = split_comma(opts.center)
   center[1] = center[1] * 0.01 * ww
@@ -157,7 +157,7 @@ local function refresh_minimap()
   end
   if opts.view_above_image then image();  view()
   else                           view(); image() end
-  draw_ass(a.text)
+  draw_ov(a.text)
 end
 
 local function enable()
@@ -173,7 +173,7 @@ local function disable()
   active = false
   mp.unobserve_property(mark_stale)
   mp.unregister_idle(refresh_minimap)
-  draw_ass("")
+  hide_ov()
 end
 
 local function toggle()
