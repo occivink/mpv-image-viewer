@@ -18,9 +18,6 @@ local options	= require 'mp.options'
 local msg    	= require 'mp.msg'
 
 options.read_options(opts, opt_path_rel, function() end)
--- msg.info("on_load_image_first	= " .. tostring(opts.on_load_image_first))
--- msg.info("on_load_image      	= " .. tostring(opts.on_load_image))
--- msg.info("on_load_non_image  	= " .. tostring(opts.on_load_non_image))
 
 local function run_maybe(str)
   if str ~= "" then mp.command(str) end
