@@ -3,12 +3,12 @@
 
 local std  = require "lib/std".std
 
-local script_dir      	= mp.get_script_directory()          	-- ~/.config/mpv/scripts/mvi
-local script_dir_base 	= std.basename(script_dir)           	--                       mvi
-local script_path     	= std.getScriptFullPath()            	-- ~/.config/mpv/scripts/mvi/<script_name>.lua
+local script_dir      	= mp.get_script_directory()          	-- ~/.config/mpv/scripts/mpvi
+local script_dir_base 	= std.basename(script_dir)           	--                       mpvi
+local script_path     	= std.getScriptFullPath()            	-- ~/.config/mpv/scripts/mpvi/<script_name>.lua
 local script_file_name	= std.filename(script_path)          	-- <script_name>.lua
 local script_stem     	= std.delua(script_file_name)        	-- <script_name>
-local opt_path_rel    	= script_dir_base ..'/'.. script_stem	-- mvi/<script_name>
+local opt_path_rel    	= script_dir_base ..'/'.. script_stem	-- mpvi/<script_name>
 
 local opts = {
   enabled                     	= true,

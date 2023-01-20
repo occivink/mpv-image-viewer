@@ -1,6 +1,6 @@
 local std	= require "lib/std".std
 
-local script_directory = mp.get_script_directory() -- ~/.config/mpv/scripts/mvi
+local script_directory = mp.get_script_directory() -- ~/.config/mpv/scripts/mpvi
 function load(relative_path)
   if relative_path:endswith('.lua') then relative_path = relative_path
   else                                   relative_path = relative_path .. ".lua" end
