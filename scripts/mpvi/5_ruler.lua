@@ -56,7 +56,6 @@ options.read_options(opts, opt_path_rel, function()
     mark_stale()
   end
 end)
--- msg.info("confirm_bindings	= " .. tostring(opts.confirm_bindings))
 
 local ov	= mp.create_osd_overlay("ass-events")
 
@@ -228,27 +227,20 @@ local function refresh()
     local angle = math.atan(math.abs(line_start.image[2] - line_end.image[2]) / math.abs(line_start.image[1] - line_end.image[1]))
     local fix_angle
     local an
-    if line_end.image[2] < line_start.image[2] and line_end.image[1] > line_start.image[1] then
-      -- upper-right
-      an = 4
-      fix_angle = function(angle) return - angle end
+    if     line_end.image[2] < line_start.image[2] and
+           line_end.image[1] > line_start.image[1] then
+      an = 4; fix_angle = function(angle) return         - angle end -- upper-right
     elseif line_end.image[2] < line_start.image[2] then
-      -- upper-left
-      an = 6
-      fix_angle = function(angle) return math.pi + angle end
+      an = 6; fix_angle = function(angle) return math.pi + angle end -- upper-left
     elseif line_end.image[1] < line_start.image[1] then
-      -- bottom-left
-      an = 6
-      fix_angle = function(angle) return math.pi - angle end
+      an = 6; fix_angle = function(angle) return math.pi - angle end -- bottom-left
     else
-      -- bottom-right
-      an = 4
-      fix_angle = function(angle) return angle end
+      an = 4; fix_angle = function(angle) return           angle end -- bottom-right
     end
     -- should implement this https://math.stackexchange.com/questions/873224/calculate-control-points-of-cubic-bezier-curve-approximating-a-part-of-a-circle
     local cp1 = pos_from_angle(1, fix_angle(angle*1/4))
     local cp2 = pos_from_angle(1, fix_angle(angle*3/4))
-    local p2 = pos_from_angle(1, fix_angle(angle))
+    local p2  = pos_from_angle(1, fix_angle(angle    ))
     a:bezier_curve(cp1[1], cp1[2], cp2[1], cp2[2], p2[1], p2[2])
 
     a:new_event()
@@ -256,12 +248,10 @@ local function refresh()
     local text_pos = pos_from_angle(1.1, fix_angle(angle*2/3)) -- you'd think /2 would make more sense, but *2/3  looks better
     a:pos(text_pos[1], text_pos[2])
     a:an(an)
-    if opts.show_angles == "both" then
-      a:append(string.format("%.2f\\N%.1f°", angle, angle / math.pi * 180))
-    elseif opts.show_angles == "degrees" then
-      a:append(string.format("%.1f°", angle / math.pi * 180))
-    elseif opts.show_angles == "radians" then
-      a:append(string.format("%.2f", angle))
+    local angle_rad = angle / math.pi * 180
+    if     opts.show_angles == "both"    then a:append(string.format("%.2f\\N%.1f°",angle,angle_rad))
+    elseif opts.show_angles == "degrees" then a:append(string.format("%.1f°"             ,angle_rad))
+    elseif opts.show_angles == "radians" then a:append(string.format("%.2f"        ,angle          ))
     end
   end
 
@@ -274,21 +264,12 @@ end
 
 local function add_bindings()
   mp.add_forced_key_binding("mouse_move", "ruler-mouse-move", mark_stale)
-  for _, key in ipairs(confirm_bindings) do
-    mp.add_forced_key_binding(key, "ruler-next-" .. key, next_step)
-  end
-  for _, key in ipairs(exit_bindings) do
-    mp.add_forced_key_binding(key, "ruler-stop-" .. key, stop)
-  end
+  for _, key in ipairs(confirm_bindings)	do mp.add_forced_key_binding(key,"ruler-next-"..key,next_step)  end
+  for _, key in ipairs(exit_bindings)   	do mp.add_forced_key_binding(key,"ruler-stop-"..key,stop     )  end
 end
-
 local function remove_bindings()
-  for _, key in ipairs(confirm_bindings) do
-    mp.remove_key_binding("ruler-next-" .. key)
-  end
-  for _, key in ipairs(exit_bindings) do
-    mp.remove_key_binding("ruler-stop-" .. key)
-  end
+  for _, key in ipairs(confirm_bindings)	do mp.remove_key_binding    (    "ruler-next-"..key) end
+  for _, key in ipairs(exit_bindings)   	do mp.remove_key_binding    (    "ruler-stop-"..key) end
   mp.remove_key_binding("ruler-mouse-move")
 end
 
