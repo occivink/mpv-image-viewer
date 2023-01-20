@@ -143,12 +143,11 @@ end
 local function cursor_centric_zoom_handler(amt)
   local zoom_inc = tonumber(amt)
   if not zoom_inc or zoom_inc == 0 then return end
-  local dim = mp.get_property_native("osd-dimensions")
-  if not dim then return end
+  local dim, ww, wh = std.getDimOSD(); if not dim then return end
 
   local margin = opts.cursor_centric_zoom_margin
 
-  local video_size = { dim.w - dim.ml - dim.mr, dim.h - dim.mt - dim.mb }
+  local video_size = {ww - dim.ml - dim.mr, wh - dim.mt - dim.mb}
 
   -- the size in pixels of the (in|de)crement
   local diff_width  = (2 ^ zoom_inc - 1) * video_size[1]
