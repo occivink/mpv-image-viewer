@@ -246,15 +246,11 @@ end
 local function align_border_wait_osd()
   local dim = std.getDimOSD(); if not dim then return end
   isOSD	= true
-
-  if align_border_init_x == nil and align_border_init_y == nil then -- OSD+ align_border− not called
-    if   track_count > track_count_max then  -- unregister self if called a few times
-      mp.unobserve_property(             align_border_wait_osd)
-    else track_count = track_count + 1 end   -- or not yet, increase the count
-  else                                                              -- OSD+ align_border+     called
-    if   track_count > track_count_max then  -- unregister self if called a few times
-      mp.unobserve_property(             align_border_wait_osd)
-    else track_count = track_count + 1       -- or not yet, +count and +align_border
+  if   track_count > track_count_max then  -- unregister self if called a few times
+    mp.unobserve_property(             align_border_wait_osd)
+  else
+    track_count = track_count + 1          -- or not yet, increase the count
+    if not (align_border_init_x == nil and align_border_init_y == nil) then -- restore align_border call
       align_border(align_border_init_x, align_border_init_y) end end
 end
 local function align_border_wait_osd_timeout()
@@ -304,7 +300,7 @@ local function reset_pan_if_visible()
   if cmd ~= "" then mp.command(cmd)                            end
 end
 
-mp.observe_property("osd-dimensions",nil,align_border_wait_osd) -- wait for OSD before aligning border
+mp.observe_property("osd-dimensions",nil,align_border_wait_osd        ) -- wait for OSD before aligning border
 mp.add_timeout     (track_timeout       ,align_border_wait_osd_timeout) -- limit waiting time
 
 mp.add_key_binding(nil, "drag-to-pan"         	, drag_to_pan_handler        	, {complex = true})
