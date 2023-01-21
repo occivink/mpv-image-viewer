@@ -48,12 +48,14 @@ local function drag_to_pan_handler(table)
   if cleanup then cleanup(); cleanup = nil end
   if table["event"] == "down" then
     local dim, ww, wh = std.getDimOSD(); if not dim then return end
+    local mw	= dim.ml + dim.mr -- left+right margins
+    local mh	= dim.mt + dim.mb -- top +bottom margins
     local mouse_pos_origin, video_pan_origin = {}, {}
     local moved = false
     mouse_pos_origin[1], mouse_pos_origin[2] = mp.get_mouse_pos()
     video_pan_origin[1]	= mp.get_property_number("video-pan-x")
     video_pan_origin[2]	= mp.get_property_number("video-pan-y")
-    local video_size   	= {ww - dim.ml - dim.mr, wh - dim.mt - dim.mb}
+    local video_size   	= {ww - mw, wh - mh}
     local margin       	= opts.drag_to_pan_margin
     local move_up      	= true
     local move_lateral 	= true
@@ -71,7 +73,7 @@ local function drag_to_pan_handler(table)
         local pY = video_pan_origin[2]
         if move_lateral then
           pX = video_pan_origin[1] + (mX - mouse_pos_origin[1]) / video_size[1]
-          if 2 * margin > dim.ml + dim.mr then
+          if 2 * margin > mw then
             pX = clamp(pX,
               (-margin + ww / 2) / video_size[1] - 0.5,
               ( margin - ww / 2) / video_size[1] + 0.5)
@@ -83,7 +85,7 @@ local function drag_to_pan_handler(table)
         end
         if move_up then
           pY = video_pan_origin[2] + (mY - mouse_pos_origin[2]) / video_size[2]
-          if 2 * margin > dim.mt + dim.mb then
+          if 2 * margin > mh then
             pY = clamp(pY,
               (-margin + wh / 2) / video_size[2] - 0.5,
               ( margin - wh / 2) / video_size[2] + 0.5)
@@ -93,7 +95,7 @@ local function drag_to_pan_handler(table)
               (-margin + wh / 2) / video_size[2] - 0.5)
           end
         end
-        mp.command("no-osd set video-pan-x " .. clamp(pX, -3, 3) .. "; no-osd set video-pan-y " .. clamp(pY, -3, 3))
+        mp.command("no-osd set video-pan-x "..clamp(pX,-3,3).."; no-osd set video-pan-y "..clamp(pY,-3,3))
         moved = false
       end
     end
@@ -113,26 +115,28 @@ local function pan_follows_cursor_handler(table)
   end
   if table["event"] == "down" then
     local dim, ww, wh = std.getDimOSD(); if not dim then return end
-    local video_size = {ww - dim.ml - dim.mr, wh - dim.mt - dim.mb}
+    local mw	= dim.ml + dim.mr -- left+right margins
+    local mh	= dim.mt + dim.mb -- top +bottom margins
+    local video_size = {ww - mw, wh - mh}
     local moved = true
     local idle = function()
       if moved then
         local mX, mY = mp.get_mouse_pos()
-        local x = math.min(1, math.max(- 2 * mX / ww + 1, -1))
-        local y = math.min(1, math.max(- 2 * mY / wh + 1, -1))
-        local command = ""
+        local x = math.min(1, math.max(-2 * mX / ww + 1, -1))
+        local y = math.min(1, math.max(-2 * mY / wh + 1, -1))
+        local cmd = ""
         local margin = opts.pan_follows_cursor_margin
-        if dim.ml + dim.mr < 0 then
-          command = command .. "no-osd set video-pan-x " .. clamp(x * (2 * margin - dim.ml - dim.mr) / (2 * video_size[1]), -3, 3) .. ";"
+        if mw < 0 then
+          cmd = cmd.."no-osd set video-pan-x "..clamp(x * (2 * margin - mw) / (2 * video_size[1]),-3,3)..";"
         elseif mp.get_property_number("video-pan-x") ~= 0 then
-          command = command .. "no-osd set video-pan-x " .. "0;"
+          cmd = cmd.."no-osd set video-pan-x " .. "0;"
         end
-        if dim.mt + dim.mb < 0 then
-          command = command .. "no-osd set video-pan-y " .. clamp(y * (2 * margin - dim.mt - dim.mb) / (2 * video_size[2]), -3, 3) .. ";"
+        if mh < 0 then
+          cmd = cmd.."no-osd set video-pan-y "..clamp(y * (2 * margin - mh) / (2 * video_size[2]),-3,3)..";"
         elseif mp.get_property_number("video-pan-y") ~= 0 then
-          command = command .. "no-osd set video-pan-y " .. "0;"
+          cmd = cmd.."no-osd set video-pan-y " .. "0;"
         end
-        if command ~= "" then mp.command(command) end
+        if cmd ~= "" then mp.command(cmd) end
         moved = false
       end
     end
@@ -149,10 +153,12 @@ local function cursor_centric_zoom_handler(amt)
   local zoom_inc = tonumber(amt)
   if not zoom_inc or zoom_inc == 0 then return end
   local dim, ww, wh = std.getDimOSD(); if not dim then return end
+  local mw	= dim.ml + dim.mr -- left+right margins
+  local mh	= dim.mt + dim.mb -- top +bottom margins
 
   local margin = opts.cursor_centric_zoom_margin
 
-  local video_size = {ww - dim.ml - dim.mr, wh - dim.mt - dim.mb}
+  local video_size = {ww - mw, wh - mh}
 
   -- the size in pixels of the (in|de)crement
   local diff_width  = (2 ^ zoom_inc - 1) * video_size[1]
@@ -209,7 +215,7 @@ local function cursor_centric_zoom_handler(amt)
   end
 
   local zoom_origin = mp.get_property("video-zoom")
-  mp.command("no-osd set video-zoom " .. zoom_origin + zoom_inc .. "; no-osd set video-pan-x " .. clamp(new_pan_x, -3, 3) .. "; no-osd set video-pan-y " .. clamp(new_pan_y, -3, 3))
+  mp.command("no-osd set video-zoom "..zoom_origin + zoom_inc.."; no-osd set video-pan-x "..clamp(new_pan_x,-3,3).."; no-osd set video-pan-y "..clamp(new_pan_y,-3,3))
 end
 
 local track_count        	= 0
@@ -261,12 +267,14 @@ local function pan_image(axis, amount, zoom_invariant, image_constrained)
   local old_pan	= mp.get_property_number(prop)
   if image_constrained == "yes" then
     local dim, ww, wh = std.getDimOSD(); if not dim then return end
+    local mw	= dim.ml + dim.mr -- left+right margins
+    local mh	= dim.mt + dim.mb -- top +bottom margins
     local margin =
          (axis == "x" and amount > 0) and dim.ml
       or (axis == "x" and amount < 0) and dim.mr
       or (                amount > 0) and dim.mt
       or (                amount < 0) and dim.mb
-    local vid_size = (axis == "x") and (ww - dim.ml - dim.mr) or (wh - dim.mt - dim.mb)
+    local vid_size = (axis == "x") and (ww - mw) or (wh - mh)
     local pixels_moved = math.abs(amount) * vid_size
     if     margin                >= 0 then return -- the margin is already visible, no point going further
     elseif margin + pixels_moved >  0 then
@@ -284,19 +292,19 @@ end
 
 local function reset_pan_if_visible()
   local dim = std.getDimOSD(); if not dim then return end
-  local command = ""
-  if (dim.ml + dim.mr >= 0) then command = command .. "no-osd set video-pan-x 0" .. ";" end
-  if (dim.mt + dim.mb >= 0) then command = command .. "no-osd set video-pan-y 0" .. ";" end
-  if command          ~= "" then mp.command(command)                                    end
+  local cmd = ""
+  if (mw >= 0) then cmd = cmd.."no-osd set video-pan-x 0"..";" end
+  if (mh >= 0) then cmd = cmd.."no-osd set video-pan-y 0"..";" end
+  if cmd ~= "" then mp.command(cmd)                            end
 end
 
 mp.observe_property("osd-dimensions",nil,align_border_wait_osd) -- wait for OSD before aligning border
 
-mp.add_key_binding(nil, "drag-to-pan"         	, drag_to_pan_handler       	, {complex = true})
-mp.add_key_binding(nil, "pan-follows-cursor"  	, pan_follows_cursor_handler	, {complex = true})
-mp.add_key_binding(nil, "cursor-centric-zoom" 	, cursor_centric_zoom_handler)
-mp.add_key_binding(nil, "align-border"        	, align_border)
-mp.add_key_binding(nil, "pan-image"           	, pan_image)
-mp.add_key_binding(nil, "rotate-video"        	, rotate_video)
-mp.add_key_binding(nil, "reset-pan-if-visible"	, reset_pan_if_visible)
-mp.add_key_binding(nil, "force-print-filename"	, force_print_filename)
+mp.add_key_binding(nil, "drag-to-pan"         	, drag_to_pan_handler        	, {complex = true})
+mp.add_key_binding(nil, "pan-follows-cursor"  	, pan_follows_cursor_handler 	, {complex = true})
+mp.add_key_binding(nil, "cursor-centric-zoom" 	, cursor_centric_zoom_handler	)
+mp.add_key_binding(nil, "align-border"        	, align_border               	)
+mp.add_key_binding(nil, "pan-image"           	, pan_image                  	)
+mp.add_key_binding(nil, "rotate-video"        	, rotate_video               	)
+mp.add_key_binding(nil, "reset-pan-if-visible"	, reset_pan_if_visible       	)
+mp.add_key_binding(nil, "force-print-filename"	, force_print_filename       	)
