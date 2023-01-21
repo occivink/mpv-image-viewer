@@ -233,14 +233,10 @@ local function align_border(x, y)
     end
     return end
 
-  local mw   	= dim.ml + dim.mr -- left+right margins
-  local mh   	= dim.mt + dim.mb -- top +bottom margins
-  local vid_w	= ww - mw
-  local vid_h	= wh - mh
-  local x,y  	= tonumber(x),tonumber(y)
-  local cmd  	= ""
-  if x then x	= clamp( x*(mw/2)/vid_w,-3,3); cmd = cmd.."no-osd set video-pan-x "..x..";" end
-  if y then y	= clamp(-y*(mh/2)/vid_h,-3,3); cmd = cmd.."no-osd set video-pan-y "..y..";" end
+  local x,y    	= tonumber(x),tonumber(y)
+  local cmd    	= ""
+  if x then cmd	= cmd.."no-osd set video-align-x "..clamp( x,-1,1)..";" end
+  if y then cmd	= cmd.."no-osd set video-align-y "..clamp(-y,-1,1)..";" end
   if cmd ~= "" then mp.command(cmd) end
 end
 local function align_border_wait_osd()
