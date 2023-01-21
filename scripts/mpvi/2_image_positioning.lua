@@ -27,6 +27,11 @@ local opts = {
 local options	= require 'mp.options'
 local msg    	= require 'mp.msg'
 local assdraw	= require 'mp.assdraw'
+local pan_min = -3.0
+local pan_max =  3.0
+-- {"video-pan-x", OPT_FLOAT(pan_x), M_RANGE(-3.0, 3.0)},
+-- {"video-pan-y", OPT_FLOAT(pan_y), M_RANGE(-3.0, 3.0)},
+-- https://github.com/mpv-player/mpv/blob/67dbe2a8f46926951af01a4ac91937f283898bb2/options/options.c#L141
 
 options.read_options(opts, opt_path_rel, function() end)
 -- msg.info("drag_to_pan_margin	= " .. tostring(opts.drag_to_pan_margin))
