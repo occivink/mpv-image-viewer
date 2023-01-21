@@ -51,6 +51,13 @@ function std.getDimOSD() -- get OSD dimensions only if they exist and wid/height
   return dim, ww, wh
 end
 
+function std.observe_print(propname)  -- notify on changes, use example ↓
+  -- local prop_list = {'prop1', 'prop2'}
+  -- for k, v in pairs(prop_list) do std.observe_print(v) end
+  mp.observe_property(propname, "string", function(_, val)
+    mp.msg.info(tostring(val).." \t ←Δ "..propname)
+  end)
+end
 
 return {
   std = std,
