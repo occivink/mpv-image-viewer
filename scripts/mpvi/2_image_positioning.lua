@@ -218,7 +218,7 @@ local function cursor_centric_zoom_handler(amt)
   mp.command("no-osd set video-zoom "..zoom_origin + zoom_inc.."; no-osd set video-pan-x "..clamp(new_pan_x,-3,3).."; no-osd set video-pan-y "..clamp(new_pan_y,-3,3))
 end
 
-local track_count        	= 0
+local track_count        	= 1
 local track_count_max    	= 2 -- track first 2 OSD changes on launch until this is implemented https://github.com/mpv-player/mpv/issues/11191
 local isOSD              	= false
 local align_border_init_x	= nil
