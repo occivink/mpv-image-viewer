@@ -292,6 +292,8 @@ end
 
 local function reset_pan_if_visible()
   local dim = std.getDimOSD(); if not dim then return end
+  local mw	= dim.ml + dim.mr -- left+right margins
+  local mh	= dim.mt + dim.mb -- top +bottom margins
   local cmd = ""
   if (mw >= 0) then cmd = cmd.."no-osd set video-pan-x 0"..";" end
   if (mh >= 0) then cmd = cmd.."no-osd set video-pan-y 0"..";" end
