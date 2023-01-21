@@ -220,6 +220,7 @@ end
 
 local track_count        	= 1
 local track_count_max    	= 2 -- track first 2 OSD changes on launch until this is implemented https://github.com/mpv-player/mpv/issues/11191
+local track_timeout      	= 1 --   but only withint the first 1 second (to avoid swallowing user events)
 local isOSD              	= false
 local align_border_init_x	= nil
 local align_border_init_y	= nil
@@ -255,6 +256,9 @@ local function align_border_wait_osd()
       mp.unobserve_property(             align_border_wait_osd)
     else track_count = track_count + 1       -- or not yet, +count and +align_border
       align_border(align_border_init_x, align_border_init_y) end end
+end
+local function align_border_wait_osd_timeout()
+  track_count = track_count_max + 1
 end
 
 local function pan_image(axis, amount, zoom_invariant, image_constrained)
@@ -301,6 +305,7 @@ local function reset_pan_if_visible()
 end
 
 mp.observe_property("osd-dimensions",nil,align_border_wait_osd) -- wait for OSD before aligning border
+mp.add_timeout     (track_timeout       ,align_border_wait_osd_timeout) -- limit waiting time
 
 mp.add_key_binding(nil, "drag-to-pan"         	, drag_to_pan_handler        	, {complex = true})
 mp.add_key_binding(nil, "pan-follows-cursor"  	, pan_follows_cursor_handler 	, {complex = true})
