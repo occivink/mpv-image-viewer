@@ -212,14 +212,43 @@ local function cursor_centric_zoom_handler(amt)
   mp.command("no-osd set video-zoom " .. zoom_origin + zoom_inc .. "; no-osd set video-pan-x " .. clamp(new_pan_x, -3, 3) .. "; no-osd set video-pan-y " .. clamp(new_pan_y, -3, 3))
 end
 
+local track_count        	= 0
+local track_count_max    	= 2 -- track first 2 OSD changes on launch until this is implemented https://github.com/mpv-player/mpv/issues/11191
+local isOSD              	= false
+local align_border_init_x	= nil
+local align_border_init_y	= nil
 local function align_border(x, y)
-  local dim, ww, wh = std.getDimOSD(); if not dim then return end
-  local video_size	= {ww - dim.ml - dim.mr, wh - dim.mt - dim.mb }
-  local x, y      	= tonumber(x), tonumber(y)
-  local cmd       	= ""
-  if x then cmd = cmd .."no-osd set video-pan-x "..clamp(-x*(dim.ml + dim.mr) / (2*video_size[1]),-3,3)..";" end
-  if y then cmd = cmd .."no-osd set video-pan-y "..clamp(-y*(dim.mt + dim.mb) / (2*video_size[2]),-3,3)..";" end
+  local dim, ww, wh = std.getDimOSD()
+  if not dim then
+    if not isOSD then          -- OSD is not ready, setup for a wait and return
+      align_border_init_x	= x  -- store initial parameters so we can use them when OSD appears
+      align_border_init_y	= y
+    end
+    return end
+
+  local mw   	= dim.ml + dim.mr -- left+right margins
+  local mh   	= dim.mt + dim.mb -- top +bottom margins
+  local vid_w	= ww - mw
+  local vid_h	= wh - mh
+  local x,y  	= tonumber(x),tonumber(y)
+  local cmd  	= ""
+  if x then x	= clamp( x*(mw/2)/vid_w,-3,3); cmd = cmd.."no-osd set video-pan-x "..x..";" end
+  if y then y	= clamp(-y*(mh/2)/vid_h,-3,3); cmd = cmd.."no-osd set video-pan-y "..y..";" end
   if cmd ~= "" then mp.command(cmd) end
+end
+local function align_border_wait_osd()
+  local dim = std.getDimOSD(); if not dim then return end
+  isOSD	= true
+
+  if align_border_init_x == nil and align_border_init_y == nil then -- OSD+ align_border− not called
+    if   track_count > track_count_max then  -- unregister self if called a few times
+      mp.unobserve_property(             align_border_wait_osd)
+    else track_count = track_count + 1 end   -- or not yet, increase the count
+  else                                                              -- OSD+ align_border+     called
+    if   track_count > track_count_max then  -- unregister self if called a few times
+      mp.unobserve_property(             align_border_wait_osd)
+    else track_count = track_count + 1       -- or not yet, +count and +align_border
+      align_border(align_border_init_x, align_border_init_y) end end
 end
 
 local function pan_image(axis, amount, zoom_invariant, image_constrained)
@@ -261,6 +290,7 @@ local function reset_pan_if_visible()
   if command          ~= "" then mp.command(command)                                    end
 end
 
+mp.observe_property("osd-dimensions",nil,align_border_wait_osd) -- wait for OSD before aligning border
 
 mp.add_key_binding(nil, "drag-to-pan"         	, drag_to_pan_handler       	, {complex = true})
 mp.add_key_binding(nil, "pan-follows-cursor"  	, pan_follows_cursor_handler	, {complex = true})
