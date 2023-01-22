@@ -274,9 +274,9 @@ local function pan_image(axis, amount, zoom_invariant, image_constrained)
   if    margin_visible          <=0 then return end -- stop if Img is completely outside the Win
 
   if image_constrained == "yes" then
-    local margin =
-         (axis == "x" and amount > 0) and dim.ml
-      or (axis == "x" and amount < 0) and dim.mr
+    local margin       =              -- empty Win area between Win and Img borders
+         (axis == "x" and amount > 0) and       dim.mr -- → when moving →
+      or (axis == "x" and amount < 0) and       dim.ml -- ← when moving ←
       or (axis == "y" and amount < 0) and       dim.mt -- ↑ when moving ↑ (+↓ −↑ (reverse) in video-pan-)
       or (axis == "y" and amount > 0) and       dim.mb -- ↓ when moving ↓
     local vid_size = (axis == "x") and (ww - mw) or (wh - mh)
