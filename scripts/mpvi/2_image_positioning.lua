@@ -261,10 +261,19 @@ local function pan_image(axis, amount, zoom_invariant, image_constrained)
   end
   local prop   	= "video-pan-" .. axis
   local old_pan	= mp.get_property_number(prop)
+
+  local dim, ww, wh = std.getDimOSD(); if not dim then return end
+  local mw	= dim.ml + dim.mr -- left+right margins
+  local mh	= dim.mt + dim.mb -- top +bottom margins
+
+  local margin_visible =              -- visible Img area
+         (axis == "x" and amount > 0) and (ww - dim.ml) -- ← when moving →
+    or   (axis == "x" and amount < 0) and (ww - dim.mr) -- → when moving ←
+    or   (axis == "y" and amount < 0) and (wh - dim.mb) -- ↓ when moving ↑
+    or   (axis == "y" and amount > 0) and (wh - dim.mt) -- ↑ when moving ↓
+  if    margin_visible          <=0 then return end -- stop if Img is completely outside the Win
+
   if image_constrained == "yes" then
-    local dim, ww, wh = std.getDimOSD(); if not dim then return end
-    local mw	= dim.ml + dim.mr -- left+right margins
-    local mh	= dim.mt + dim.mb -- top +bottom margins
     local margin =
          (axis == "x" and amount > 0) and dim.ml
       or (axis == "x" and amount < 0) and dim.mr
