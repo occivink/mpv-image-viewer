@@ -283,7 +283,7 @@ local function pan_image(axis, amount, zoom_invariant, image_constrained)
     local pixels_moved = math.abs(amount) * vid_size
     if     margin                <=0 then return -- no margin, no point going further
     elseif margin - pixels_moved < 0 then        -- not enough margin, stop at 0 margin
-      amount = (math.abs(amount)/amount) * margin / vid_size -- todo: partial bug fix for -1px overshoots. Maybe it's some mpv bug that processes events too fast???
+      amount = (math.abs(amount)/amount) * (margin - 0.5) / vid_size -- todo: partial bug fix for -1px overshoots. Maybe it's some mpv bug that processes events too fast???
     end
   end
   mp.set_property_number(prop, old_pan + amount)
