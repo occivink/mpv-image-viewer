@@ -255,6 +255,7 @@ end
 local function pan_image(axis, amount, zoom_invariant, image_constrained)
   amount = tonumber(amount)
   if not amount or amount == 0 or axis ~= "x" and axis ~= "y" then return end
+  if axis == "y" then amount = -1 * amount end   -- make +↑ −↓
   if zoom_invariant == "yes" then
     amount = amount / 2 ^ mp.get_property_number("video-zoom")
   end
@@ -267,8 +268,8 @@ local function pan_image(axis, amount, zoom_invariant, image_constrained)
     local margin =
          (axis == "x" and amount > 0) and dim.ml
       or (axis == "x" and amount < 0) and dim.mr
-      or (                amount > 0) and dim.mt
-      or (                amount < 0) and dim.mb
+      or (axis == "y" and amount < 0) and       dim.mt -- ↑ when moving ↑ (+↓ −↑ (reverse) in video-pan-)
+      or (axis == "y" and amount > 0) and       dim.mb -- ↓ when moving ↓
     local vid_size = (axis == "x") and (ww - mw) or (wh - mh)
     local pixels_moved = math.abs(amount) * vid_size
     if     margin                >= 0 then return -- the margin is already visible, no point going further
