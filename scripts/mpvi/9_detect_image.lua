@@ -13,7 +13,7 @@ local opt_path_rel    	= script_dir_base ..'/'.. script_stem	-- mpvi/<script_nam
 local opts = {
   on_load_image_first	= {""},
   on_load_image      	= {""},
-  on_load_non_image  	= {""},
+  on_unload_image    	= {""},
 }
 local options	= require 'mp.options'
 local msg    	= require 'mp.msg'
@@ -30,9 +30,9 @@ end
 
 local wasImg = false
 local function set_image(isImg)
-  if     isImg and not wasImg then msg.info("Detected 🖼 #1"); run_maybe(opts.on_load_image_first) end
-  if     isImg                then msg.info("Detected 🖼"   ); run_maybe(opts.on_load_image      ) end
-  if not isImg and     wasImg then msg.info("Detected Non🖼"); run_maybe(opts.on_load_non_image  ) end
+  if     isImg and not wasImg then msg.info("🖼 Load#1"); run_maybe(opts.on_load_image_first) end
+  if     isImg                then msg.info("🖼 Load"  ); run_maybe(opts.on_load_image      ) end
+  if not isImg and     wasImg then msg.info("🖼 Unload"); run_maybe(opts.on_unload_image    ) end
   wasImg = isImg
 end
 
