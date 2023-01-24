@@ -1,0 +1,11 @@
+# ↓ "quote text" to avoid lua libyaml parser bug that includes #comments
+enabled          	: true        	# whether to show by default
+size             	: 36          	# font size
+margin           	: 10          	# distance of the text to the borders
+# ↓ text         	to be expanded	# details @ mpv.io/manual/master
+# line break     	\N            	#
+# ass tags       	→             	# docs.aegisub.org/3.2/ASS_Tags/
+text_top_left    	: ""
+text_top_right   	: ""
+text_bottom_left 	: "${filename} [${playlist-pos-1}/${playlist-count}]"
+text_bottom_right	: "[${dwidth:X}x${dheight:X}]"
