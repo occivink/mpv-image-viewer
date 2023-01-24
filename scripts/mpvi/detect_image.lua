@@ -1,4 +1,4 @@
--- Detects when 🖼 are loaded and allows you to run commands configured in 1_detect_image.conf
+-- Detects when 🖼 are loaded and allows you to run commands configured in detect_image.yaml
 
 local std       	= require "lib/std".std
 local parse_yaml	= require "lib/tinyyaml".parse
