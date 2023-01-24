@@ -268,6 +268,17 @@ local function remove_bindings()
   mp.remove_key_binding("ruler-mouse-move")
 end
 
+local function stop()
+  if state == 0 then return end
+  mp.unregister_idle(refresh)
+  mp.unobserve_property(mark_stale)
+  remove_bindings()
+  state       	= 0
+  first_point 	= nil
+  second_point	= nil
+  hide_ov()
+end
+
 local function next_step()
   if state == 0 then
     state = 1
@@ -286,17 +297,6 @@ local function next_step()
     second_point = cursor_video_space_normalized(dim)
     if opts.clear_on_second_point_set then next_step() end
   else                                     stop()      end
-end
-
-local function stop()
-  if state == 0 then return end
-  mp.unregister_idle(refresh)
-  mp.unobserve_property(mark_stale)
-  remove_bindings()
-  state       	= 0
-  first_point 	= nil
-  second_point	= nil
-  hide_ov()
 end
 
 mp.add_key_binding(nil, "ruler", next_step)
