@@ -2,7 +2,8 @@
 -- Activate with `minimap-enable`, `minimap-disable`, `minimap-toggle`
 -- Configure via script-opts/mpvi/minimap.yaml
 
-local std  = require "lib/std".std
+local std  	= require "lib/std".std
+local color	= require "lib/color".color
 
 local script_dir      	= mp.get_script_directory()          	-- ~/.config/mpv/scripts/mpvi
 local script_dir_base 	= std.basename(script_dir)           	--                       mpvi
@@ -16,10 +17,11 @@ local opts = {
   center                      	= "92,92",
   scale                       	= 12,
   max_size                    	= "16,16",
-  image_opacity               	= "88",
-  image_color                 	= "BBBBBB",
-  view_opacity                	= "BB",
-  view_color                  	= "222222",
+  color_space                 	= "okhsl",
+  image_opacity               	= "50",
+  image_color                 	= "0 0 75",
+  view_opacity                	= "75",
+  view_color                  	= "0 0 15",
   view_above_image            	= true,
   hide_when_full_image_in_view	= true,
 }
@@ -43,6 +45,14 @@ local function split_comma(input)
   end
   return ret
 end
+local image_color  	= color.convert2mpv(opts.color_space, opts.image_color  )
+local view_color   	= color.convert2mpv(opts.color_space, opts.view_color   )
+local image_opacity	= color.a2hex(                        opts.image_opacity)
+local view_opacity 	= color.a2hex(                        opts.view_opacity )
+if image_color     	== nil then msg.error("ruler: wrong config image color "  	..opts.image_color); image_color  	= "BBBBBB" end
+if view_color      	== nil then msg.error("ruler: wrong config view color "   	..opts.view_color) ; view_color   	= "222222" end
+if image_opacity   	== nil then msg.error("ruler: wrong config image opacity "	..opts.view_color) ; image_opacity	= "88"     end
+if view_opacity    	== nil then msg.error("ruler: wrong config view opacity " 	..opts.view_color) ; view_opacity 	= "BB"     end
 
 local active 	= false
 local refresh	= true
@@ -137,11 +147,11 @@ local function refresh_ui()
   local draw_image = function() draw(
     (     dim.ml/2 - dim.mr/2) / opts.scale, (     dim.mt/2 - dim.mb/2) / opts.scale,
     (ww - dim.ml   - dim.mr  ) / opts.scale, (wh - dim.mt   - dim.mb  ) / opts.scale,
-    opts.image_opacity, opts.image_color) end
+    image_opacity, image_color) end
   local draw_view = function() draw(
     0              , 0,
     ww / opts.scale, wh / opts.scale,
-    opts.view_opacity , opts.view_color ) end
+    view_opacity , view_color ) end
   if opts.view_above_image then draw_image(); draw_view ()
   else                          draw_view (); draw_image() end
   draw_ov(a.text)
