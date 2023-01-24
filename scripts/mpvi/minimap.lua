@@ -14,9 +14,9 @@ local opt_path_rel    	= script_dir_base ..'/'.. script_stem	-- mpvi/<script_nam
 
 local opts = {
   enabled                     	= true,
-  center                      	= "92,92",
+  center                      	= "92 92",
   scale                       	= 12,
-  max_size                    	= "16,16",
+  max_size                    	= "16 16",
   color_space                 	= "okhsl",
   image_opacity               	= "50",
   image_color                 	= "0 0 75",
@@ -38,13 +38,6 @@ std.read_options_yaml(opts, opt_path_rel, function(c)
   mark_stale()
 end)
 
-local function split_comma(input)
-  local ret = {}
-  for str in string.gmatch(input, "([^,]+)") do
-    ret[#ret + 1] = tonumber(str)
-  end
-  return ret
-end
 local image_color  	= color.convert2mpv(opts.color_space, opts.image_color  )
 local view_color   	= color.convert2mpv(opts.color_space, opts.view_color   )
 local image_opacity	= color.a2hex(                        opts.image_opacity)
@@ -85,10 +78,10 @@ local function refresh_ui()
           dim.ml >= 0 and
           dim.mr >= 0    )                        then hide_ov(); return end end
 
-  local center = split_comma(opts.center)
+  local center = string.splitflex(opts.center)
   center[1] = center[1] * 0.01 * ww
   center[2] = center[2] * 0.01 * wh
-  local cutoff = split_comma(opts.max_size)
+  local cutoff = string.splitflex(opts.max_size)
   cutoff[1] = cutoff[1] * 0.01 * ww * 0.5
   cutoff[2] = cutoff[2] * 0.01 * wh * 0.5
 
