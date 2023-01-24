@@ -5,6 +5,25 @@ string.escmagic  	= function(self, str)	return self:gsub("([^%w])", "%%%1")     
 string.startswith	= function(self, str)	return self:find('^' .. str:escmagic()       ) ~= nil	end
 string.endswith  	= function(self, str)	return self:find(       str:escmagic() .. '$') ~= nil	end
 string.trim      	= function(self     )	return self:match("^%s*(.-)%s*$")                    	end
+string.split     	= function(self, sep)
+  if sep == nil then sep = ',' end
+  local ret = {}
+  for str in string.gmatch(self, "([^"..sep.."]+)") do
+    ret[#ret + 1] = str end
+  return ret
+end
+string.splitflex	= function(self, sep)
+  local seps = {',',';'}
+  if sep == nil then
+    for k,v in pairs(seps) do
+      if self:find(v) then sep = v end end
+    if sep == nil then sep = ' ' end -- finally, use space
+  end
+  local ret = {}
+  for str in string.gmatch(self, "([^"..sep.."]+)") do
+    ret[#ret + 1] = str end
+  return ret
+end
 
 function std.getScriptFullPath()
   local source = debug.getinfo(2,"S").source
