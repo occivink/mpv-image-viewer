@@ -103,6 +103,12 @@ function std.read_options_yaml(opts, identifier, on_update)
   if identifier == nil then identifier = mp.get_script_name() end
   msg.debug("reading options for "..identifier)
 
+  local function str_type_conv(val_cur, val_new) -- convert some strings too bool/number
+    if     type(val_cur) == "number" then
+      if not (tonumber(val_new) == nil) then val_new = tonumber(val_new) end end
+    return val_new
+  end
+
   -- get, read, and parse YAML config file
   local function read_yaml_config(identifier) -- get YAML config file contet
     local yaml_ext           	= {'yml','yaml'}
@@ -146,8 +152,9 @@ function std.read_options_yaml(opts, identifier, on_update)
         if cfg_src then warn = warn.."\n  in '"..cfg_src.."'" end
         msg.warn(warn)
       else
-        local  type_def = type(cfg_def[k_def])
-        local  type_cfg = type(v)
+        local  type_def	= type(cfg_def[k_def])
+        v              	= str_type_conv(cfg_def[k_def], v)
+        local  type_cfg	= type(v)
         if     type_def ~= type_cfg then  -- mismatch
           local warn = "[ignore] wrong key type: "..
             "expected '"..type_def..
