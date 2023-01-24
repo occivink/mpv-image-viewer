@@ -1,5 +1,6 @@
 -- Adds a status line that can show different properties in the corner of the window. By default it shows `filename [positon/total]` in the bottom left
--- Can be activated with the commands `status-line-enable`, `status-line-disable`, `status-line-toggle` and configured through 3_status_line.conf
+-- Activate with the commands `status-line-enable`, `status-line-disable`, `status-line-toggle`
+-- Configure via script-opts/mpvi/status_line.yaml
 
 local std  = require "lib/std".std
 
@@ -24,7 +25,7 @@ local msg    	= require 'mp.msg'
 local assdraw	= require 'mp.assdraw'
 local options	= require 'mp.options'
 
-options.read_options(opts, opt_path_rel, function(c)
+std.read_options_yaml(opts, opt_path_rel, function(c)
   if c["enabled"] then if opts.enabled then  enable()
                        else                 disable() end end
   if c["size"] or c["margin"]          then mark_stale() end

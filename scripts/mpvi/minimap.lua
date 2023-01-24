@@ -1,5 +1,6 @@
 -- Adds a minimap that displays the position of the image relative to the view
--- activated with `minimap-enable`, `minimap-disable`, `minimap-toggle` and configured via 4_minimap.conf
+-- Activate with `minimap-enable`, `minimap-disable`, `minimap-toggle`
+-- Configure via script-opts/mpvi/minimap.yaml
 
 local std  = require "lib/std".std
 
@@ -27,7 +28,7 @@ local msg    	= require 'mp.msg'
 local assdraw	= require 'mp.assdraw'
 local options	= require 'mp.options'
 
-options.read_options(opts, opt_path_rel, function(c)
+std.read_options_yaml(opts, opt_path_rel, function(c)
   if c["enabled"] then
     if opts.enabled then  enable()
     else                 disable() end

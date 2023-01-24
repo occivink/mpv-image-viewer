@@ -1,5 +1,5 @@
 -- Adds a `ruler` command that lets you measure positions, distances and angles in the image
--- Configure via 5_ruler.conf
+-- Configure via script-opts/mpvi/ruler.yaml
 
 local std  = require "lib/std".std
 
@@ -45,16 +45,11 @@ end
 local confirm_bindings = split(opts.confirm_bindings)
 local exit_bindings = split(opts.exit_bindings)
 
-options.read_options(opts, opt_path_rel, function()
-  if state ~= 0 then
-    remove_bindings()
-  end
-  confirm_bindings = split(opts.confirm_bindings)
-  exit_bindings = split(opts.exit_bindings)
-  if state ~= 0 then
-    add_bindings()
-    mark_stale()
-  end
+std.read_options_yaml(opts, opt_path_rel, function()
+  if state ~= 0 then remove_bindings() end
+  confirm_bindings	= split(opts.confirm_bindings)
+  exit_bindings   	= split(opts.exit_bindings   )
+  if state ~= 0 then add_bindings(); mark_stale() end
 end)
 
 local ov	= mp.create_osd_overlay("ass-events")

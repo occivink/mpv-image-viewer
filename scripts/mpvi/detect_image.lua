@@ -1,4 +1,5 @@
--- Detects when 🖼 are loaded and allows you to run commands configured in detect_image.yaml
+-- Detects when 🖼 are loaded and allows you to run commands from config
+-- Configure via script-opts/mpvi/detect_image.yaml
 
 local std       	= require "lib/std".std
 local parse_yaml	= require "lib/tinyyaml".parse

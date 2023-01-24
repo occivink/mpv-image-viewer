@@ -6,6 +6,7 @@
 -- `pan-image`           	: pan the image in a direction, optionally ignoring the zoom or forcing the image to stay visible
 -- `rotate-video`        	: rotate the image in 90 degrees increment
 -- `reset-pan-if-visible`	: reset the pan if the entire image is visible
+-- Configure via script-opts/mpvi/image_positioning.yaml
 
 local std  = require "lib/std".std
 
@@ -32,8 +33,7 @@ local pan_max  	=  3.0 -- https://github.com/mpv-player/mpv/blob/67dbe2a8f469269
 local align_min	= -1.0 -- {"video-align-x", OPT_FLOAT(align_x), M_RANGE(-1.0, 1.0)},
 local align_max	=  1.0 -- https://github.com/mpv-player/mpv/blob/67dbe2a8f46926951af01a4ac91937f283898bb2/options/options.c#L143
 
-options.read_options(opts, opt_path_rel, function() end)
--- msg.info("drag_to_pan_margin	= " .. tostring(opts.drag_to_pan_margin))
+std.read_options_yaml(opts, opt_path_rel, function() end)
 
 local function clamp(value, low, high)
   if     value <= low  then return low
