@@ -1,8 +1,10 @@
 local std = {} -- stdlib
 
-string.startswith	= function(self, str)	return self:find( '^' .. str       ) ~= nil	end
-string.endswith  	= function(self, str)	return self:find(        str .. '$') ~= nil	end
-string.trim      	= function(self     )	return self:match("^%s*(.-)%s*$"   )       	end
+-- escape magic chars ^$()%.[]*+-? https://www.lua.org/manual/5.1/manual.html#5.4.1
+string.escmagic  	= function(self, str)	return self:gsub("([^%w])", "%%%1")                  	end
+string.startswith	= function(self, str)	return self:find('^' .. str:escmagic()       ) ~= nil	end
+string.endswith  	= function(self, str)	return self:find(       str:escmagic() .. '$') ~= nil	end
+string.trim      	= function(self     )	return self:match("^%s*(.-)%s*$")                    	end
 
 function std.getScriptFullPath()
   local source = debug.getinfo(2,"S").source
