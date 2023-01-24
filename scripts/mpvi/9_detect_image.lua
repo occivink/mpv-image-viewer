@@ -19,8 +19,12 @@ local msg    	= require 'mp.msg'
 
 options.read_options(opts, opt_path_rel, function() end)
 
-local function run_maybe(str)
-  if str ~= "" then mp.command(str) end
+local function run_maybe(str_or_strdict)
+  local  arg_type = type(str_or_strdict)
+  if     arg_type == 'string' then
+    if str_or_strdict ~= "" then mp.command(str_or_strdict) end
+  elseif arg_type == 'table' then
+    for k, v in pairs(str_or_strdict) do run_maybe(v) end   end
 end
 
 local wasImg = false
