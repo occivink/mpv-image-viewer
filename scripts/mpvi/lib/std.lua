@@ -53,6 +53,12 @@ function std.tprint(tbl, indent)
     else                            	print(formatting ..          v ) end
   end
 end
+
+function std.tlen(T)
+  local count = 0
+  for _ in pairs(T) do count = count + 1 end
+  return count
+end
 -- MPV-specific functions
 function std.getDimOSD() -- get OSD dimensions only if they exist and wid/height positive
   local dim = mp.get_property_native("osd-dimensions")
