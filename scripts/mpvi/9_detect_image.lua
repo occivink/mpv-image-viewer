@@ -1,6 +1,7 @@
 -- Detects when 🖼 are loaded and allows you to run commands configured in 1_detect_image.conf
 
-local std  = require "lib/std".std
+local std       	= require "lib/std".std
+local parse_yaml	= require "lib/tinyyaml".parse
 
 local script_dir      	= mp.get_script_directory()          	-- ~/.config/mpv/scripts/mpvi
 local script_dir_base 	= std.basename(script_dir)           	--                       mpvi
@@ -10,14 +11,14 @@ local script_stem     	= std.delua(script_file_name)        	-- <script_name>
 local opt_path_rel    	= script_dir_base ..'/'.. script_stem	-- mpvi/<script_name>
 
 local opts = {
-  on_load_image_first	= "",
-  on_load_image      	= "",
-  on_load_non_image  	= "",
+  on_load_image_first	= {""},
+  on_load_image      	= {""},
+  on_load_non_image  	= {""},
 }
 local options	= require 'mp.options'
 local msg    	= require 'mp.msg'
 
-options.read_options(opts, opt_path_rel, function() end)
+std.read_options_yaml(opts, opt_path_rel, function() end)
 
 local function run_maybe(str_or_strdict)
   local  arg_type = type(str_or_strdict)
