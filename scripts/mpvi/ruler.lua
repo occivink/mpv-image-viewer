@@ -257,18 +257,19 @@ local function mark_stale()
   video_dimensions_stale = true
 end
 
-local function add_bindings()
+local add_bindings, remove_bindings, stop, next_step
+function add_bindings()
   mp.add_forced_key_binding("mouse_move", "ruler-mouse-move", mark_stale)
   for _, key in ipairs(confirm_bindings)	do mp.add_forced_key_binding(key,"ruler-next-"..key,next_step)  end
   for _, key in ipairs(exit_bindings)   	do mp.add_forced_key_binding(key,"ruler-stop-"..key,stop     )  end
 end
-local function remove_bindings()
+function remove_bindings()
   for _, key in ipairs(confirm_bindings)	do mp.remove_key_binding    (    "ruler-next-"..key) end
   for _, key in ipairs(exit_bindings)   	do mp.remove_key_binding    (    "ruler-stop-"..key) end
   mp.remove_key_binding("ruler-mouse-move")
 end
 
-local function stop()
+function stop()
   if state == 0 then return end
   mp.unregister_idle(refresh)
   mp.unobserve_property(mark_stale)
@@ -279,7 +280,7 @@ local function stop()
   hide_ov()
 end
 
-local function next_step()
+function next_step()
   if state == 0 then
     state = 1
     mp.register_idle(refresh)
