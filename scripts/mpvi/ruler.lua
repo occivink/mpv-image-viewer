@@ -36,21 +36,13 @@ local first_point           	= nil	-- in normalized video space coordinates
 local second_point          	= nil	-- in normalized video space coordinates
 local video_dimensions_stale	= false
 
-local function split(input)
-  local ret = {}
-  for str in string.gmatch(input, "([^,]+)") do
-    ret[#ret + 1] = str
-  end
-  return ret
-end
-
-local confirm_bindings = split(opts.confirm_bindings)
-local exit_bindings = split(opts.exit_bindings)
+local confirm_bindings	= string.splitflex(opts.confirm_bindings)
+local exit_bindings   	= string.splitflex(opts.exit_bindings)
 
 std.read_options_yaml(opts, opt_path_rel, function()
   if state ~= 0 then remove_bindings() end
-  confirm_bindings	= split(opts.confirm_bindings)
-  exit_bindings   	= split(opts.exit_bindings   )
+  confirm_bindings	= string.splitflex(opts.confirm_bindings)
+  exit_bindings   	= string.splitflex(opts.exit_bindings   )
   if state ~= 0 then add_bindings(); mark_stale() end
 end)
 
