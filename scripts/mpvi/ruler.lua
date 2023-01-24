@@ -1,7 +1,8 @@
 -- Adds a `ruler` command that lets you measure positions, distances and angles in the image
 -- Configure via script-opts/mpvi/ruler.yaml
 
-local std  = require "lib/std".std
+local std  	= require "lib/std".std
+local color	= require "lib/color".color
 
 local script_dir      	= mp.get_script_directory()          	-- ~/.config/mpv/scripts/mpvi
 local script_dir_base 	= std.basename(script_dir)           	--                       mpvi
@@ -18,7 +19,8 @@ local opts = {
   line_width               	= 2,
   dots_radius              	= 3,
   font_size                	= 36,
-  line_color               	= "33",
+  color_space              	= "okhsl",
+  line_color               	= "57 100 70",
   confirm_bindings         	= "MBTN_LEFT,ENTER",
   exit_bindings            	= "ESC",
   set_first_point_on_begin 	= false,
@@ -51,6 +53,9 @@ std.read_options_yaml(opts, opt_path_rel, function()
   exit_bindings   	= split(opts.exit_bindings   )
   if state ~= 0 then add_bindings(); mark_stale() end
 end)
+
+local line_color = color.convert2mpv(opts.color_space, opts.line_color)
+if line_color == nil then msg.error("ruler: wrong config line color "..opts.line_color); line_color = "000000" end
 
 local ov	= mp.create_osd_overlay("ass-events")
 
@@ -128,8 +133,7 @@ local function refresh()
     a:pos(0,0)
     a:append("{\\bord" .. bord .. "}")
     a:append("{\\shad0}")
-    local r = opts.line_color
-    a:append("{\\3c&H".. r .. r .. r .. "&}")
+    a:append("{\\3c&H"..line_color.."&}")
     a:append("{\\1a&HFF}")
     a:append("{\\2a&HFF}")
     a:append("{\\3a&H00}")
