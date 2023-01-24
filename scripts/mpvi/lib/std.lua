@@ -43,6 +43,16 @@ function std.basename(path) -- get filename from path
   return path:gsub("(.*[/\\])(.*)"    ,"%2")  -- (path/)(file) → (file)
 end
 
+-- Print contents of `tbl`, with indentation `indent` gist.github.com/ripter/4270799
+function std.tprint(tbl, indent)
+  if not indent then indent = 0 end
+  for k, v in pairs(tbl) do
+    formatting = string.rep("  ", indent) .. k .. ": "
+    if     type(v) == "table"   then	print(formatting               ); std.tprint(v,indent+1)
+    elseif type(v) == 'boolean' then	print(formatting .. tostring(v))
+    else                            	print(formatting ..          v ) end
+  end
+end
 -- MPV-specific functions
 function std.getDimOSD() -- get OSD dimensions only if they exist and wid/height positive
   local dim = mp.get_property_native("osd-dimensions")
