@@ -78,6 +78,9 @@ function std.roundp(num) -- less efficient, performs the same FPU rounding but w
 end
 
 -- MPV-specific functions
+local options	= require 'mp.options'
+local msg    	= require 'mp.msg'
+
 function std.getDimOSD() -- get OSD dimensions only if they exist and wid/height positive
   local dim = mp.get_property_native("osd-dimensions")
   if not dim          then return nil, nil, nil end
@@ -91,7 +94,7 @@ function std.observe_print(propname)  -- notify on changes, use example ↓
   -- local prop_list = {'prop1', 'prop2'}
   -- for k, v in pairs(prop_list) do std.observe_print(v) end
   mp.observe_property(propname, "string", function(_, val)
-    mp.msg.info(tostring(val).." \t ←Δ "..propname)
+    msg.info(tostring(val).." \t ←Δ "..propname)
   end)
 end
 
