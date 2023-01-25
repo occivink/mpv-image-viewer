@@ -2,7 +2,8 @@
 -- Activate with the commands `status-line-enable`, `status-line-disable`, `status-line-toggle`
 -- Configure via script-opts/mpvi/status_line.yaml
 
-local std  = require "lib/std".std
+local std  	= require "lib/std".std
+local color	= require "lib/color".color
 
 local script_dir      	= mp.get_script_directory()          	-- ~/.config/mpv/scripts/mpvi
 local script_dir_base 	= std.basename(script_dir)           	--                       mpvi
@@ -15,6 +16,12 @@ local opts = {
   enabled          	= true,
   size             	= 36,
   margin           	= 10,
+  override_mpv_conf	= false,
+  color_space      	= "okhsl",
+  border_opacity   	= "0",
+  border_color     	= "0   0   0",
+  text_opacity     	= "15",
+  text_color       	= "0 100 100",
   text_top_left    	= "",
   text_top_right   	= "",
   text_bottom_left 	= "${filename} [${playlist-pos-1}/${playlist-count}]",
@@ -38,6 +45,28 @@ std.read_options_yaml(opts, opt_path_rel, function(c)
     mark_stale()
   end
 end)
+
+local text_opacity  	= color.op2hex(                       opts.text_opacity  )
+local text_color    	= color.convert2mpv(opts.color_space, opts.text_color    )
+local border_opacity	= color.op2hex(                       opts.border_opacity)
+local border_color  	= color.convert2mpv(opts.color_space, opts.border_color  )
+if text_opacity     	== nil then msg.error("ruler: wrong config text opacity "  	..opts.text_opacity  ) ; text_opacity  	= "FF"     end
+if text_color       	== nil then msg.error("ruler: wrong config text color "    	..opts.text_color    ) ; text_color    	= "FFFFFF" end
+if border_opacity   	== nil then msg.error("ruler: wrong config border opacity "	..opts.border_opacity) ; border_opacity	= "FF"     end
+if border_color     	== nil then msg.error("ruler: wrong config border color "  	..opts.border_color  ) ; border_color  	= "000000" end
+
+local _set = false
+if opts.override_mpv_conf then _set = true
+else
+  local osd_text      	= mp.get_property("osd-color")
+  local osd_border    	= mp.get_property("osd-border-color")
+  local osd_text_def  	= "#FFFFFFFF"
+  local osd_border_def	= "#FF000000"
+  if not osd_text     	== osd_text_def   then _set = true end
+  if not osd_border   	== osd_border_def then _set = true end end
+if _set then
+  mp.set_property("osd-color"       , "#"..text_opacity  ..text_color)
+  mp.set_property("osd-border-color", "#"..border_opacity..border_color) end
 
 local stale 	= true
 local active	= false
