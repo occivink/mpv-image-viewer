@@ -222,13 +222,30 @@ local function get_Cs(L, a_, b_)
   return {C_0, C_mid, C_max}
 end
 
+function color.hsl2norm(h,s,l,slmax) -- checks input for errors and returns 1-based numbers
+  local norm_str = 0            -- normalize str→num
+  if type(h) == 'string' then h = tonumber(h); norm_str = norm_str + 1 end
+  if type(s) == 'string' then s = tonumber(s); norm_str = norm_str + 1 end
+  if type(l) == 'string' then l = tonumber(l); norm_str = norm_str + 1 end
+  if 0 < norm_str and norm_str < 3 then print("warning: some, but not all, input was of type 'string'") end
+
+  if   h < 0     or s < 0     or l < 0 then print("error: h|s|l < 0 ("..h..","..s..","..l..")"); return end
+  if     slmax == nil  then
+    if h > 1     or s > 1     or l > 1 then -- h/s/l=1 assumed to be 0–1, not 0–360 or 0–100
+         slmax = 100
+    else slmax =  1 end end
+  if not slmax == 1 and not slmax == 100 then print("error: max scale should be 1 or 100, not"..tostring(slmax)); return end
+  if slmax == 1 then
+    if h > slmax or s > slmax or l > slmax then print("error: h|s|l above max="..slmax.." ("..h..","..s..","..l..")"); return end end
+  if slmax == 100 then            -- normalize 360 or 100 → 1
+    if h > 360   or s > slmax or l > slmax then print("error: h|s|l above max=360 or"..slmax.." ("..h..","..s..","..l..")"); return end
+    h = h/360; s = s/100; l = l/100
+  end
+
+  return h,s,l
+end
 function color.hsl2rgb(h, s, l)
-  if type(h) == 'string' then h = tonumber(h)      end  -- normalize str→num
-  if type(s) == 'string' then s = tonumber(s)      end
-  if type(l) == 'string' then l = tonumber(l)      end
-  if      h   > 1        then h =          h / 360 end  -- normalize
-  if      s   > 1        then s =          s / 100 end
-  if      l   > 1        then l =          l / 100 end
+  h,s,l = color.hsl2norm(h,s,l)
   local r,g,b
 
   if (s == 0) then r,g,b = l,l,l  -- achromatic
@@ -257,12 +274,7 @@ function color.hsl2rgb(h, s, l)
 end
 
 function color.okhsl2srgb(h,s,l)
-  if type(h) == 'string' then h = tonumber(h)      end  -- normalize str→num
-  if type(s) == 'string' then s = tonumber(s)      end
-  if type(l) == 'string' then l = tonumber(l)      end
-  if      h   > 1        then h =          h / 360 end  -- normalize
-  if      s   > 1        then s =          s / 100 end
-  if      l   > 1        then l =          l / 100 end
+  h,s,l = color.hsl2norm(h,s,l)
   local r,g,b
 
   if     (l == 1) then return 255,255,255
@@ -336,28 +348,58 @@ function color.hex2rev(hex)
   else   print("wrong input length ("..len.."), should be 2, 3, or 6 symbols without #: "..hex) end
   return hexbgr, "#"..tostring(hexbgr)
 end
+function color.rgb2norm(r,b,g,max) -- checks input for errors and returns 255-based numbers
+  local norm_str = 0            -- normalize str→num
+  if type(r) == 'string' then r = tonumber(r); norm_str = norm_str + 1 end
+  if type(g) == 'string' then g = tonumber(g); norm_str = norm_str + 1 end
+  if type(b) == 'string' then b = tonumber(b); norm_str = norm_str + 1 end
+  if 0 < norm_str and norm_str < 3 then print("warning: some, but not all, input was of type 'string'") end
+
+  if r <   0 or g <   0 or b <   0 then print("error: r|g|b < 0"  ); return end
+  if     max == nil  then
+    if r > 1 or g >   1 or b >   1 then  -- r/g/b=1 assumed to be 0–1, not 0–255
+          max =  255
+    else  max =    1 end end
+  if not max == 1 and not max == 255 then print("error: max scale should be 1 or 255, not"..tostring(max)); return end
+  if r > max or g > max or b > max then print("error: r|g|b > max="..max.." ("..r..","..g..","..b..")"); return end
+  if max ==   1 then            -- normalize 1 → 255
+    r = 255*r; g = 255*g; b = 255*b end
+
+  return r,g,b
+end
 function color.rgb2hex(r,g,b)
-  if type(r) == 'string' then r = tonumber(r)      end  -- normalize str→num
-  if type(g) == 'string' then g = tonumber(g)      end
-  if type(b) == 'string' then b = tonumber(b)      end
-  if r>255 or g>255 or b>255 then print("error: r,g,b > 255"); return end
-  if r<  0 or g<  0 or b<  0 then print("error: r,g,b < 0"  ); return end
+  r,g,b = color.rgb2norm(r,g,b)
   local hex = string.format("%02X%02X%02X",r,g,b)
   return hex   , "#"..tostring(hex)
 end
 function color.rgb2hexbgr(r,g,b)
-  if type(r) == 'string' then r = tonumber(r)      end  -- normalize str→num
-  if type(g) == 'string' then g = tonumber(g)      end
-  if type(b) == 'string' then b = tonumber(b)      end
-  if r>255 or g>255 or b>255 then print("error: r,g,b > 255"); return end
-  if r<  0 or g<  0 or b<  0 then print("error: r,g,b < 0"  ); return end
+  r,g,b = color.rgb2norm(r,g,b)
   return color.rgb2hex(b,g,r)
 end
-function color.a2hex(a)
-  if type(a) == 'string' then a = tonumber(a)      end  -- normalize str→num
-  if a>255 then print("error: a > 255"); return end
-  if a<  0 then print("error: a < 0"  ); return end
-  local hex = string.format("%02X",a)
+function color.a2norm(a,max) -- checks alpha input for errors and returns 1-based alpha
+  if type(a) == 'string' then a = tonumber(a)     end  -- normalize str→num
+
+  if a <   0 then print("error: a < 0 ("            ..a..")"); return end
+  if     max == nil  then
+    if     a > 100 then   max = 255
+    elseif a >   1 then   max = 100  -- a=1 assumed to be 0–1, not 0–100 or 0–255
+    else                  max =   1 end end
+  if not max == 1 and not max == 100 and not max == 255 then print("error: max scale should be 1, 100, or 255, not"..tostring(max)); return end
+  if a > max then print("error: a > max="..max.." ("..a..")"); return end
+
+  if     max == 255 then a = a/255     -- normalize 100 → 1
+  elseif max == 100 then a = a/100 end -- normalize 255 → 1
+
+  return a
+end
+function color.a2hex(a,max)   -- checks alpha input for errors and returns 255-based hex number
+  a = color.a2norm(a,max)
+  local hex = string.format("%02X",255*a)
+  return hex   , "#"..tostring(hex)
+end
+function color.op2hex(op,max) -- checks opacity input for errors and returns 255-based hex number
+  local a = 1 - color.a2norm(op,max)
+  local hex = string.format("%02X",255*a)
   return hex   , "#"..tostring(hex)
 end
 
@@ -376,6 +418,26 @@ function color.convert2mpv(color_space, col_in, sep)
     local hsl  	= col_in:splitflex(sep)
     local r,g,b	= color.hsl2rgb(hsl[1],hsl[2],hsl[3])
     col_conv   	= color.rgb2hexbgr(r,g,b)
+  elseif color_space:lower() == "hex"   then
+    col_conv	= color.hex2rev(col_in)
+  end
+  return col_conv
+end
+
+function color.convert2rgba(color_space, col_in, sep, alpha_in)
+  if sep == nil then sep = ' ' end
+  if   col_in  :startswith("#")
+    or alpha_in:startswith("#") then
+    if not color_space == "hex" then
+      print("color type mismatch: passed hex color/alpha ("..col_in.."/"..alpha_in.."), but non-hex color space ("..color_space..")")
+      color_space = "hex" end end
+  local col_conv,r,g,b,a
+  if     color_space:lower() == "okhsl" then
+    local hsl	= col_in:splitflex(sep)
+    r,g,b    	= color.okhsl2srgb(hsl[1],hsl[2],hsl[3])
+  elseif color_space:lower() == "hsl"   then
+    local hsl	= col_in:splitflex(sep)
+    r,g,b    	= color.hsl2rgb(hsl[1],hsl[2],hsl[3])
   elseif color_space:lower() == "hex"   then
     col_conv	= color.hex2rev(col_in)
   end
