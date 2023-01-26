@@ -3,7 +3,7 @@ enabled                     	: true    	# whether to show by default
 center                      	: "92 92" 	# the position of the center of the minimap, in percentage of the window (x, y)
 scale                       	: 12      	# the scale of the minimap (i.e. the view rectangle is scale / 100 times the size of the window)
 max_size                    	: "16 16" 	# the cutoff size of the minimap (i.e. the image rectangle is clipped if it falls outside of the this zone)
-color_space                 	: "okhsl" 	# "okhsl", "hsl", or "hex" bottosson.github.io/misc/colorpicker
+color_space                 	: "okhsl" 	# "okhsl","okhsv", "hsl","hsv" or "hex" bottosson.github.io/misc/colorpicker
 image_opacity               	: "50"    	# opacity of the "image" (from 0=opaque to 100=transparent)
 image_color                 	: "0 0 75"	# color   of the "image"
 view_opacity                	: "100"   	# opacity of the "view"

@@ -6,7 +6,7 @@ show_angles              	: "degrees"        	# can be "degrees", "radians", "bo
 line_width               	:  2               	#
 dots_radius              	:  3               	#
 font_size                	: 36               	#
-color_space              	: "okhsl"          	# "okhsl", "hsl", or "hex" bottosson.github.io/misc/colorpicker
+color_space              	: "okhsl"          	# "okhsl","okhsv", "hsl","hsv" or "hex" bottosson.github.io/misc/colorpicker
 line_color               	: "57 100 70"      	#
 confirm_bindings         	: "MBTN_LEFT ENTER"	# bindings used to set points. The binding to trigger ruler mode can also be used. Space/comma-separated list
 exit_bindings            	: "ESC"            	# bindings used to set points. The binding to trigger ruler mode can also be used. Space/comma-separated list
