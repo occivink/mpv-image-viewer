@@ -428,7 +428,7 @@ function color.hex2rev(hex)
   else   print("wrong input length ("..len.."), should be 2, 3, or 6 symbols without #: "..hex) end
   return hexbgr, "#"..tostring(hexbgr)
 end
-function color.rgb2norm(r,b,g,max) -- checks input for errors and returns 255-based numbers
+function color.rgb2norm(r,g,b,max) -- checks input for errors and returns 255-based numbers
   local norm_str = 0            -- normalize str→num
   if type(r) == 'string' then r = tonumber(r); norm_str = norm_str + 1 end
   if type(g) == 'string' then g = tonumber(g); norm_str = norm_str + 1 end
