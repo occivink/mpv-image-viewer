@@ -523,20 +523,24 @@ function color.convert2rgba(color_space, col_in, sep, alpha_in)
   if     color_space:lower() == "okhsl" then
     local hsl	= col_in:splitflex(sep)
     r,g,b    	= color.okhsl2srgb(hsl[1],hsl[2],hsl[3])
+    a        	= color.a2hex(alpha_in)
   elseif color_space:lower() == "okhsv" then
     local hsv	= col_in:splitflex(sep)
     r,g,b    	= color.okhsv2srgb(hsv[1],hsv[2],hsv[3])
+    a        	= color.a2hex(alpha_in)
   elseif color_space:lower() == "hsl"   then
     local hsl	= col_in:splitflex(sep)
     r,g,b    	= color.hsl2rgb(hsl[1],hsl[2],hsl[3])
+    a        	= color.a2hex(alpha_in)
   elseif color_space:lower() == "hsv"   then
     local hsv	= col_in:splitflex(sep)
     r,g,b    	= color.hsv2rgb(hsv[1],hsv[2],hsv[3])
     a        	= color.a2hex(alpha_in)
   elseif color_space:lower() == "hex"   then
-    col_conv	= color.hex2rev(col_in)
+    r,g,b     = color.hex2rgb(col_in)
   end
-  return col_conv
+
+  return r,g,b,a
 end
 
 return {
