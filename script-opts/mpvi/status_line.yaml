@@ -2,10 +2,16 @@
 enabled          	: true        	# whether to show by default
 size             	: 36          	# font size
 margin           	: 10          	# distance of the text to the borders
+override_mpv_conf	: false       	# override OSD color set in mpv.conf (default values are always overriden)
+color_space      	: "okhsl"     	# "okhsl","okhsv", "hsl","hsv" or "hex" bottosson.github.io/misc/colorpicker
+border_opacity   	: "0"         	# opacity of the OSD border (from 0=opaque to 100=transparent)
+border_color     	: "0   0   0" 	# color   of the OSD border
+text_opacity     	: "15"        	# opacity of the OSD text   (from 0=opaque to 100=transparent)
+text_color       	: "0 100 100" 	# color   of the OSD text
 # ↓ text         	to be expanded	# details @ mpv.io/manual/master
-# line break     	\N            	#
-# ass tags       	→             	# docs.aegisub.org/3.2/ASS_Tags/
+#                	\N            	# line break
+#                	ass tags      	# docs.aegisub.org/3.2/ASS_Tags/
 text_top_left    	: ""
 text_top_right   	: ""
 text_bottom_left 	: "${filename} [${playlist-pos-1}/${playlist-count}]"
-text_bottom_right	: "[${dwidth:X}x${dheight:X}]"
+text_bottom_right	: "[${dwidth:X}×${dheight:X}]"
