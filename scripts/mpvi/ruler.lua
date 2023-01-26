@@ -46,7 +46,7 @@ std.read_options_yaml(opts, opt_path_rel, function()
   if state ~= 0 then add_bindings(); mark_stale() end
 end)
 
-local line_color = color.convert2mpv(opts.color_space, opts.line_color)
+local line_color = color.convert2ass(opts.color_space, opts.line_color)
 if line_color == nil then msg.error("ruler: wrong config line color "..opts.line_color); line_color = "000000" end
 
 local ov	= mp.create_osd_overlay("ass-events")

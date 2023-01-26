@@ -38,8 +38,8 @@ std.read_options_yaml(opts, opt_path_rel, function(c)
   mark_stale()
 end)
 
-local image_color  	= color.convert2mpv(opts.color_space, opts.image_color  )
-local view_color   	= color.convert2mpv(opts.color_space, opts.view_color   )
+local image_color  	= color.convert2ass(opts.color_space, opts.image_color  )
+local view_color   	= color.convert2ass(opts.color_space, opts.view_color   )
 local image_opacity	= color.a2hex(                        opts.image_opacity)
 local view_opacity 	= color.a2hex(                        opts.view_opacity )
 if image_color     	== nil then msg.error("ruler: wrong config image color "  	..opts.image_color); image_color  	= "BBBBBB" end

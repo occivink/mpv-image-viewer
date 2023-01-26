@@ -483,7 +483,7 @@ function color.op2hex(op,max) -- checks opacity input for errors and returns 255
   return hex   , "#"..tostring(hex)
 end
 
-function color.convert2mpv(color_space, col_in, sep)
+function color.convert2ass(color_space, col_in, sep)
   if sep == nil then sep = ' ' end
   if col_in:startswith("#") then
     if not color_space == "hex" then
