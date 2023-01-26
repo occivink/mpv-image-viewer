@@ -46,10 +46,11 @@ std.read_options_yaml(opts, opt_path_rel, function(c)
   end
 end)
 
+-- OSD accepts #AARRGGBB instead of BGR in ass
 local text_opacity  	= color.op2hex(                       opts.text_opacity  )
-local text_color    	= color.convert2mpv(opts.color_space, opts.text_color    )
+local text_color    	= color.convert2hex(opts.color_space, opts.text_color    )
 local border_opacity	= color.op2hex(                       opts.border_opacity)
-local border_color  	= color.convert2mpv(opts.color_space, opts.border_color  )
+local border_color  	= color.convert2hex(opts.color_space, opts.border_color  )
 if text_opacity     	== nil then msg.error("ruler: wrong config text opacity "  	..opts.text_opacity  ) ; text_opacity  	= "FF"     end
 if text_color       	== nil then msg.error("ruler: wrong config text color "    	..opts.text_color    ) ; text_color    	= "FFFFFF" end
 if border_opacity   	== nil then msg.error("ruler: wrong config border opacity "	..opts.border_opacity) ; border_opacity	= "FF"     end
@@ -57,13 +58,13 @@ if border_color     	== nil then msg.error("ruler: wrong config border color "  
 
 local _set = false
 if opts.override_mpv_conf then _set = true
-else
+else  -- override even if ↑ false when OSD is not set (values=defaults)
   local osd_text      	= mp.get_property("osd-color")
   local osd_border    	= mp.get_property("osd-border-color")
   local osd_text_def  	= "#FFFFFFFF"
   local osd_border_def	= "#FF000000"
-  if not osd_text     	== osd_text_def   then _set = true end
-  if not osd_border   	== osd_border_def then _set = true end end
+  if osd_text         	== osd_text_def   then _set = true end
+  if osd_border       	== osd_border_def then _set = true end end
 if _set then
   mp.set_property("osd-color"       , "#"..text_opacity  ..text_color)
   mp.set_property("osd-border-color", "#"..border_opacity..border_color) end
