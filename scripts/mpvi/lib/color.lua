@@ -511,6 +511,9 @@ function color.convert2ass(color_space, col_in, sep)
   end
   return col_conv
 end
+function color.convert2hex(color_space, col_in, sep)
+  return color.hex2rev(color.convert2ass(color_space, col_in, sep))
+end
 
 function color.convert2rgba(color_space, col_in, sep, alpha_in)
   if sep == nil then sep = ' ' end
