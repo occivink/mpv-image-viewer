@@ -15,6 +15,10 @@ local function srgb_transfer_function(a)
   if .0031308 >= a then return 12.92 * a
   else                  return 1.055 * a^(.4166666666666667) - .055 end
 end
+local function srgb_transfer_function_inv(a)
+  if .04045   <  a then return ((a + .055) / 1.055)^2.4
+  else                  return   a         / 12.92 end
+end
 local function oklab2linear_srgb(L,a,b)
   local l_ = L + 0.3963377774 * a + 0.2158037573 * b
   local m_ = L - 0.1055613458 * a - 0.0638541728 * b
@@ -242,6 +246,7 @@ function color.hsl2norm(h,s,l,slmax) -- checks input for errors and returns 1-ba
     h = h/360; s = s/100; l = l/100
   end
 
+  h = clamp(h); s = clamp(s); l = clamp(l) -- avoid 0 values
   return h,s,l
 end
 function color.hsl2rgb(h, s, l)
@@ -271,6 +276,37 @@ function color.hsl2rgb(h, s, l)
     std.round(255*math.min(r,1)),
     std.round(255*math.min(g,1)),
     std.round(255*math.min(b,1))
+end
+function color.hsv2rgb(h, s, v)
+  h,s,v = color.hsl2norm(h,s,v)
+  local r,g,b
+
+  local i = math.floor(h * 6)
+  local f = h *  6 - i
+  local p = v * (1 -           s)
+  local q = v * (1 -      f  * s)
+  local t = v * (1 - (1 - f) * s)
+
+  local remainder = i % 6
+  if     remainder == 0 then r = v; g = t; b = p
+  elseif remainder == 1 then r = q; g = v; b = p
+  elseif remainder == 2 then r = p; g = v; b = t
+  elseif remainder == 3 then r = p; g = q; b = v
+  elseif remainder == 4 then r = t; g = p; b = v
+  elseif remainder == 5 then r = v; g = p; b = q
+  end
+
+  return -- min to avoid returning values > 255; also round
+    std.round(255*math.min(r,1)),
+    std.round(255*math.min(g,1)),
+    std.round(255*math.min(b,1))
+end
+
+local eps = 1e-05
+function clamp(x)
+  if     x <     eps then return     eps
+  elseif x > 1 - eps then return 1 - eps
+  else                    return x       end
 end
 
 function color.okhsl2srgb(h,s,l)
@@ -308,6 +344,50 @@ function color.okhsl2srgb(h,s,l)
   -- C = s*C_0
   -- C = s*1.25*C_mid
   -- C = s*C_max
+
+  r,g,b = oklab2linear_srgb(L, C*a_, C*b_)
+  return -- min to avoid returning values > 255; also round
+    std.round(255*math.min(srgb_transfer_function(r),1)),
+    std.round(255*math.min(srgb_transfer_function(g),1)),
+    std.round(255*math.min(srgb_transfer_function(b),1))
+end
+function color.okhsv2srgb(h,s,v)
+  h,s,v = color.hsl2norm(h,s,v)
+  local r,g,b
+
+  local a_	= math.cos(2*math.pi*h);
+  local b_	= math.sin(2*math.pi*h);
+
+  local ST_max	= get_ST_max(a_,b_)
+  local S_max 	=     ST_max[1]
+  local S_0   	= 0.5
+  local T     	=     ST_max[2]
+  local k     	= 1 - S_0 / S_max
+  --          	--
+  local L_v   	= 1 - s*  S_0/(S_0 + T - T*k*s)
+  local C_v   	=     s*T*S_0/(S_0 + T - T*k*s)
+  --          	--
+  local L     	= v*L_v
+  local C     	= v*C_v
+  -- to present steps along the way
+  -- L = v
+  -- C = v*       s*S_max
+  -- L = v*  (1 - s*S_max/(S_max+T))
+  -- C = v*T*     s*S_max/(S_max+T)
+
+  local L_vt = toe_inv(L_v)
+  local C_vt = C_v * L_vt / L_v
+
+  local L_new	= toe_inv(L) -- * L_v/L_vt
+  C          	= C * L_new/L
+  L          	=     L_new
+
+  local rs,gs,bs	= oklab2linear_srgb(L_vt, a_*C_vt, b_*C_vt)
+  local scale_L 	= (1 / (math.max(rs,gs,bs,0)))^(1/3)
+
+  -- remove to see effect without rescaling
+  L = L * scale_L
+  C = C * scale_L
 
   r,g,b = oklab2linear_srgb(L, C*a_, C*b_)
   return -- min to avoid returning values > 255; also round
@@ -414,9 +494,17 @@ function color.convert2mpv(color_space, col_in, sep)
     local hsl  	= col_in:splitflex(sep)
     local r,g,b	= color.okhsl2srgb(hsl[1],hsl[2],hsl[3])
     col_conv   	= color.rgb2hexbgr(r,g,b)
+  elseif color_space:lower() == "okhsv" then
+    local hsv  	= col_in:splitflex(sep)
+    local r,g,b	= color.okhsv2srgb(hsv[1],hsv[2],hsv[3])
+    col_conv   	= color.rgb2hexbgr(r,g,b)
   elseif color_space:lower() == "hsl"   then
     local hsl  	= col_in:splitflex(sep)
     local r,g,b	= color.hsl2rgb(hsl[1],hsl[2],hsl[3])
+    col_conv   	= color.rgb2hexbgr(r,g,b)
+  elseif color_space:lower() == "hsv"   then
+    local hsv  	= col_in:splitflex(sep)
+    local r,g,b	= color.hsv2rgb(hsv[1],hsv[2],hsv[3])
     col_conv   	= color.rgb2hexbgr(r,g,b)
   elseif color_space:lower() == "hex"   then
     col_conv	= color.hex2rev(col_in)
@@ -435,9 +523,16 @@ function color.convert2rgba(color_space, col_in, sep, alpha_in)
   if     color_space:lower() == "okhsl" then
     local hsl	= col_in:splitflex(sep)
     r,g,b    	= color.okhsl2srgb(hsl[1],hsl[2],hsl[3])
+  elseif color_space:lower() == "okhsv" then
+    local hsv	= col_in:splitflex(sep)
+    r,g,b    	= color.okhsv2srgb(hsv[1],hsv[2],hsv[3])
   elseif color_space:lower() == "hsl"   then
     local hsl	= col_in:splitflex(sep)
     r,g,b    	= color.hsl2rgb(hsl[1],hsl[2],hsl[3])
+  elseif color_space:lower() == "hsv"   then
+    local hsv	= col_in:splitflex(sep)
+    r,g,b    	= color.hsv2rgb(hsv[1],hsv[2],hsv[3])
+    a        	= color.a2hex(alpha_in)
   elseif color_space:lower() == "hex"   then
     col_conv	= color.hex2rev(col_in)
   end
