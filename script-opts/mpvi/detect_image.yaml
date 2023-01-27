@@ -1,0 +1,18 @@
+# commands to execute when a file detected as an image (1 frame, no audio) is loaded or unloaded
+# these "hooks" let you change bindings, profiles, reset properties... mpv.io/manual/master/#list-of-input-commands for general command information
+# CAN'T "unload a profile", to emulate this you must create an opposite profile and load that
+# ↓ "quote commands" to avoid lua libyaml parser bug that includes #comments
+on_load_image_first :                   	# current file:     image, previous: non-image or none
+  - "apply-profile   mpvi"              	#   enable config profile    [mpvi]
+  - "enable-section  mpvi"              	#   enable key bindings with {mpvi} named input section
+  - "script-message status-line-enable" 	#   enable status line (command set in status_line.lua)
+on_load_image       :                   	# current file:     image, previous: any
+  # - "script-message align-border '' 1"	#  align image to the top
+  - "no-osd set video-pan-x 0"          	#  reset x pan
+on_unload_image     :                   	# current file: non-image, previous:     image
+  - "apply-profile   mpvi restore"      	#   try to restore previous config profile
+  - "disable-section mpvi"              	#   disable key bindings with {mpvi}
+  - "no-osd set video-pan-x 0"          	#   reset pan/zoom
+  - "no-osd set video-pan-y 0"          	#   ...
+  - "no-osd set video-zoom  0"          	#   ...
+  - "script-message status-line-disable"	#   disable status line (command set in status_line.lua)

@@ -1,0 +1,14 @@
+# ↓ "quote text" to avoid lua libyaml parser bug that includes #comments
+show_distance            	: true             	# show the length of the lines between the two points
+show_coordinates         	: true             	# show the coordinates of the two points
+coordinates_space        	: "image"          	# the coordinate space of the text shown. Can be "image", "window", "both"
+show_angles              	: "degrees"        	# can be "degrees", "radians", "both", or "no"
+line_width               	:  2               	#
+dots_radius              	:  3               	#
+font_size                	: 36               	#
+color_space              	: "okhsl"          	# "okhsl","okhsv", "hsl","hsv" or "hex" bottosson.github.io/misc/colorpicker
+line_color               	: "57 100 70"      	#
+confirm_bindings         	: "MBTN_LEFT ENTER"	# bindings used to set points. The binding to trigger ruler mode can also be used. Space/comma-separated list
+exit_bindings            	: "ESC"            	# bindings used to set points. The binding to trigger ruler mode can also be used. Space/comma-separated list
+set_first_point_on_begin 	: false            	# if yes, the first point will be immediately set at the cursor position when calling 'ruler'
+clear_on_second_point_set	: false            	# if yes, the ruler overlay will be immediately cleared when setting the second point
