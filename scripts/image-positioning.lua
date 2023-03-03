@@ -175,7 +175,7 @@ function cursor_centric_zoom_handler(amt)
     -- if image can be fully visible (in either direction), set pan to 0
     -- if border would show on either side, then prefer adjusting the pan even if not cursor-centric
     local auto_c = opts.cursor_centric_zoom_auto_center
-    if auto_c and video_size[1] + diff_width + 2 * margin <= dim.w then
+    if auto_c and new_width <= dim.w then
         new_pan_x = 0
     else
         local pan_x = mp.get_property("video-pan-x")
@@ -186,7 +186,7 @@ function cursor_centric_zoom_handler(amt)
         end
     end
 
-    if auto_c and video_size[2] + diff_height + 2 * margin <= dim.h then
+    if auto_c and new_height <= dim.h then
         new_pan_y = 0
     else
         local pan_y = mp.get_property("video-pan-y")
