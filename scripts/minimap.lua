@@ -1,7 +1,7 @@
 local opts = {
     enabled = true,
     center = "92,92",
-    scale = 12,
+    scale = .1,
     max_size = "16,16",
     image_opacity = "88",
     image_color = "BBBBBB",
@@ -9,6 +9,7 @@ local opts = {
     view_color = "222222",
     view_above_image = true,
     hide_when_full_image_in_view = true,
+    image_fixed_view_moves = true,
 }
 
 local msg = require 'mp.msg'
@@ -68,9 +69,9 @@ function refresh_minimap()
     local center = split_comma(opts.center)
     center[1] = center[1] * 0.01 * ww
     center[2] = center[2] * 0.01 * wh
-    local cutoff = split_comma(opts.max_size)
-    cutoff[1] = cutoff[1] * 0.01 * ww * 0.5
-    cutoff[2] = cutoff[2] * 0.01 * wh * 0.5
+    local max_size = split_comma(opts.max_size)
+    max_size[1] = max_size[1] * 0.01 * ww
+    max_size[2] = max_size[2] * 0.01 * wh
 
     local a = assdraw.ass_new()
     local draw = function(x, y, w, h, opacity, color)
@@ -86,77 +87,94 @@ function refresh_minimap()
         w = w * 0.5
         h = h * 0.5
         a:draw_start()
-        local rounded = {true,true,true,true} -- tl, tr, br, bl
         local x0,y0,x1,y1 = x-w, y-h, x+w, y+h
-        if x0 < -cutoff[1] then
-            x0 = -cutoff[1]
-            rounded[4] = false
-            rounded[1] = false
-        end
-        if y0 < -cutoff[2] then
-            y0 = -cutoff[2]
-            rounded[1] = false
-            rounded[2] = false
-        end
-        if x1 > cutoff[1] then
-            x1 = cutoff[1]
-            rounded[2] = false
-            rounded[3] = false
-        end
-        if y1 > cutoff[2] then
-            y1 = cutoff[2]
-            rounded[3] = false
-            rounded[4] = false
-        end
+        local cutoff = {max_size[1] * .5, max_size[2] * .5}
+        x0 = math.max(x0, -cutoff[1])
+        y0 = math.max(y0, -cutoff[2])
+        x1 = math.min(x1, cutoff[1])
+        y1 = math.min(y1, cutoff[2])
+        if x0 > cutoff[1] or x1 < -cutoff[1] or y0 > cutoff[2] or y1 < -cutoff[2] then return end
+        w = x1 - x0
+        h = y1 - y0
 
-        local r = 3
-        local c = 0.551915024494 * r
-        if rounded[0] then
-            a:move_to(x0 + r, y0)
-        else
-            a:move_to(x0,y0)
+        a:move_to(x0,y0)
+        a:line_to(x1, y0)
+        a:line_to(x1, y1)
+        a:line_to(x0, y1)
+        a:line_to(x0, y0)
+        a:draw_stop()
+
+        a:new_event()
+        a:pos(center[1], center[2])
+        a:append("{\\bord0}")
+        a:append("{\\shad0}")
+        a:append("{\\c&" .. "ffffff" .. "&}")
+        a:append("{\\2a&HFF}")
+        a:append("{\\3a&HFF}")
+        a:append("{\\4a&HFF}")
+        a:append("{\\1a&H" .. "22" .. "}")
+        a:draw_start()
+        local draw_line = function(x, y, horiz)
+            bord = 1 * .5
+            if horiz then
+                a:move_to(x - bord    , y + bord)
+                a:line_to(x + w + bord, y + bord)
+                a:line_to(x + w + bord, y - bord)
+                a:line_to(x - bord    , y - bord)
+                a:line_to(x - bord    , y + bord)
+            else
+                a:move_to(x - bord, y - bord)
+                a:line_to(x - bord, y + h + bord)
+                a:line_to(x + bord, y + h + bord)
+                a:line_to(x + bord, y - bord)
+                a:line_to(x - bord, y - bord)
+            end
         end
-        if rounded[1] then
-            a:line_to(x1 - r, y0)
-            a:bezier_curve(x1 - r + c, y0, x1, y0 + r - c, x1, y0 + r)
-        else
-            a:line_to(x1, y0)
-        end
-        if rounded[2] then
-            a:line_to(x1, y1 - r)
-            a:bezier_curve(x1, y1 - r + c, x1 - r + c, y1, x1 - r, y1)
-        else
-            a:line_to(x1, y1)
-        end
-        if rounded[3] then
-            a:line_to(x0 + r, y1)
-            a:bezier_curve(x0 + r - c, y1, x0, y1 - r + c, x0, y1 - r)
-        else
-            a:line_to(x0, y1)
-        end
-        if rounded[4] then
-            a:line_to(x0, y0 + r)
-            a:bezier_curve(x0, y0 + r - c, x0 + r - c, y0, x0 + r, y0)
-        else
-            a:line_to(x0, y0)
-        end
+        if x0 > -cutoff[1] and x0 < cutoff[1] then draw_line(x0, y0, false) end
+        if y0 > -cutoff[2] and y0 < cutoff[2] then draw_line(x0, y0, true) end
+        if x1 > -cutoff[1] and x1 < cutoff[1] then draw_line(x1, y0, false) end
+        if y1 > -cutoff[2] and y1 < cutoff[2] then draw_line(x0, y1, true) end
         a:draw_stop()
     end
-    local image = function()
-        draw((dim.ml/2 - dim.mr/2) / opts.scale,
-             (dim.mt/2 - dim.mb/2) / opts.scale,
-             (ww - dim.ml - dim.mr) / opts.scale,
-             (wh - dim.mt - dim.mb) / opts.scale,
-             opts.image_opacity,
-             opts.image_color)
-    end
-    local view = function()
-        draw(0,
-             0,
-             ww / opts.scale,
-             wh / opts.scale,
-             opts.view_opacity,
-             opts.view_color)
+    local image, view
+    local image_width = (ww - dim.ml - dim.mr)
+    local image_height = (wh - dim.mt - dim.mb)
+    if opts.image_fixed_view_moves then
+        local scale = math.min((1 - opts.scale) * max_size[1] / image_width, 
+                               (1 - opts.scale) * max_size[2] / image_height)
+        image = function()
+            draw(0,
+                 0,
+                 image_width * scale,
+                 image_height * scale,
+                 opts.image_opacity,
+                 opts.image_color)
+        end
+        view = function()
+            draw(-(dim.ml/2 - dim.mr/2) * scale,
+                 -(dim.mt/2 - dim.mb/2) * scale,
+                 ww * scale,
+                 wh * scale,
+                 opts.view_opacity,
+                 opts.view_color)
+        end
+    else
+        image = function()
+            draw(image_width / opts.scale,
+                 image_height / opts.scale,
+                 (ww - dim.ml - dim.mr) / opts.scale,
+                 (wh - dim.mt - dim.mb) / opts.scale,
+                 opts.image_opacity,
+                 opts.image_color)
+        end
+        view = function()
+            draw(0,
+                 0,
+                 ww / opts.scale,
+                 wh / opts.scale,
+                 opts.view_opacity,
+                 opts.view_color)
+        end
     end
     if opts.view_above_image then
         image()
